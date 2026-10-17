@@ -19,23 +19,28 @@ from datetime import datetime, timezone
 from collections import deque
 from time import monotonic
 import logging
+import mimetypes
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+from urllib.parse import urlsplit
 
 import qrcode
 
 from assistant_engine import ai_chat, guided_chat, has_allergy
+from auth_security import AdminAuth, PREVIEW_SECRET, SESSION_SECONDS, hash_password, parse_password_hash
 from voice_gateway import transcribe_audio, synthesize_speech
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
-from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+from itsdangerous import BadData, URLSafeTimedSerializer
 from pydantic import BaseModel, Field
 from starlette.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 
 BASE_DIR = Path(__file__).resolve().parent
+mimetypes.add_type("image/webp", ".webp")
 TEMPLATES = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 COOKIE_NAME = "ai_commerce_admin"
 ORDER_STATES = ("new", "accepted", "preparing", "ready", "completed", "cancelled")
@@ -205,20 +210,34 @@ class SpeechPayload(BaseModel):
 
 def create_app(db_path: Path | None = None, *, admin_password: str | None = None, secret_key: str | None = None) -> FastAPI:
     db_path = Path(db_path) if db_path else Path(os.environ.get("DATABASE_PATH", str(BASE_DIR / "data" / "commerce.db")))
+    password_hash = os.environ.get("ADMIN_PASSWORD_HASH", "") if admin_password is None else ""
     admin_password = admin_password if admin_password is not None else os.environ.get("ADMIN_PASSWORD", "demo12345")
-    secret_key = secret_key or os.environ.get("SECRET_KEY", "local-preview-secret-change-before-deploy")
+    secret_key = secret_key if secret_key is not None else os.environ.get("SECRET_KEY", "")
     # Railway may supply a public domain automatically after generating an HTTPS address.
     # PUBLIC_BASE_URL is the explicit override used for table QR codes.
     railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip().removeprefix("https://").strip("/")
     public_base = (os.environ.get("PUBLIC_BASE_URL", "").strip().rstrip("/")
                    or (f"https://{railway_domain}" if railway_domain else "http://127.0.0.1:8000"))
-    production = os.environ.get("APP_ENV", "development").lower() == "production"
-    if production and (admin_password == "demo12345" or secret_key == "local-preview-secret-change-before-deploy" or len(secret_key) < 32):
-        raise RuntimeError("Set strong ADMIN_PASSWORD and SECRET_KEY before production deployment")
+    environment = os.environ.get("APP_ENV", "development").lower()
+    if environment not in ("development", "production"):
+        raise RuntimeError("APP_ENV must be development or production")
+    production = environment == "production"
+    if production and (secret_key == PREVIEW_SECRET or len(secret_key) < 32):
+        raise RuntimeError("Set a random SECRET_KEY of at least 32 characters before production deployment")
+    if not password_hash and (not admin_password or len(admin_password.encode()) > 1024 or
+                             (production and (admin_password == "demo12345" or len(admin_password.strip()) < 12))):
+        raise RuntimeError("Set ADMIN_PASSWORD_HASH or an ADMIN_PASSWORD of at least 12 characters in production")
+    if not secret_key or secret_key == PREVIEW_SECRET:
+        secret_key = secrets.token_urlsafe(48)  # Local preview keys must never be public constants.
+    credential_material = "hash:" + password_hash if password_hash else "password:" + admin_password
+    credential_tag = hmac.new(secret_key.encode(), credential_material.encode(), hashlib.sha256).hexdigest()
+    password_hash = password_hash or hash_password(admin_password)
+    parse_password_hash(password_hash)
+    del admin_password, credential_material
     bootstrap(db_path)
     app = FastAPI(title="AI Commerce Egypt – Restaurant Pilot", docs_url=None if production else "/api/docs")
     app.state.db_path = db_path
-    app.state.admin_password = admin_password
+    auth = AdminAuth(db_path, password_hash, credential_tag)
     app.state.serializer = URLSafeTimedSerializer(secret_key, salt="ace-session-v1")
     app.state.secret_key = secret_key
     app.state.public_base = public_base
@@ -241,9 +260,12 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         if not cookie:
             return False
         try:
-            data = app.state.serializer.loads(cookie, max_age=60 * 60 * 8)
-            return data.get("role") == "admin"
-        except (BadSignature, SignatureExpired, AttributeError):
+            data = app.state.serializer.loads(cookie, max_age=SESSION_SECONDS)
+            if isinstance(data, dict) and data.get("role") == "admin" and auth.session_valid(data.get("sid")):
+                req.state.admin_session_id = data["sid"]
+                return True
+            return False
+        except BadData:
             return False
 
     def login_required(req: Request):
@@ -256,7 +278,7 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
 
     def verify_csrf(req: Request, token: str):
         login_required(req)
-        if not hmac.compare_digest(csrf_for(req), token):
+        if not hmac.compare_digest(csrf_for(req).encode(), token.encode()):
             raise HTTPException(status_code=403, detail="انتهت صلاحية الطلب. حدّثي الصفحة.")
 
     @app.get("/", response_class=HTMLResponse)
@@ -462,7 +484,7 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
     def track_order(reference: str, token: str = ""):
         with dbconn(db_path) as db:
             order = db.execute("SELECT * FROM orders WHERE reference=?", (reference,)).fetchone()
-        if not order or not token or not hmac.compare_digest(order["tracking_token"], token):
+        if not order or not token or not hmac.compare_digest(order["tracking_token"].encode(), token.encode()):
             raise HTTPException(status_code=404, detail="لم يتم العثور على الطلب")
         return {k: v for k, v in order_response(order).items() if k != "tracking_token"}
 
@@ -474,19 +496,34 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
 
     @app.post("/admin/login")
     async def admin_login_post(request: Request):
+        # Browsers include Origin on form POSTs; reject cross-origin login and opaque origins.
+        origin = request.headers.get("origin")
+        allowed_origins = {str(request.base_url).rstrip("/")}
+        configured_url = urlsplit(public_base)
+        if production and configured_url.scheme == "https" and configured_url.netloc:
+            allowed_origins.add(f"https://{configured_url.netloc}")
+        if request.headers.get("sec-fetch-site") == "cross-site" or (origin and origin not in allowed_origins):
+            raise HTTPException(status_code=403, detail="طلب تسجيل الدخول من مصدر غير مسموح")
+        retry = await run_in_threadpool(auth.reserve_login_attempt, request.client.host if request.client else "unknown")
+        if retry:
+            raise HTTPException(status_code=429, detail="محاولات كثيرة. انتظري خمس دقائق وحاولي مجددًا.", headers={"Retry-After": str(retry)})
         form = await request.form()
         supplied = str(form.get("password", ""))
-        if not hmac.compare_digest(supplied.encode(), admin_password.encode()):
+        if not await run_in_threadpool(auth.password_matches, supplied):
             return TEMPLATES.TemplateResponse(request, "login.html", {"error": True}, status_code=401)
-        token = app.state.serializer.dumps({"role": "admin", "nonce": secrets.token_urlsafe(16)})
+        sid = await run_in_threadpool(auth.create_session)
+        if sid is None:
+            raise HTTPException(status_code=401, detail="تم تغيير بيانات الدخول. حاولي مجددًا.")
+        token = app.state.serializer.dumps({"role": "admin", "sid": sid})
         response = RedirectResponse("/admin", status_code=303)
-        response.set_cookie(COOKIE_NAME, token, httponly=True, secure=production, samesite="lax", max_age=8*60*60, path="/")
+        response.set_cookie(COOKIE_NAME, token, httponly=True, secure=production, samesite="lax", max_age=SESSION_SECONDS, path="/")
         return response
 
     @app.post("/admin/logout")
     async def logout(request: Request):
         form = await request.form()
         verify_csrf(request, str(form.get("csrf", "")))
+        await run_in_threadpool(auth.revoke_session, request.state.admin_session_id)
         response = RedirectResponse("/admin/login", status_code=303)
         response.delete_cookie(COOKIE_NAME, path="/")
         return response

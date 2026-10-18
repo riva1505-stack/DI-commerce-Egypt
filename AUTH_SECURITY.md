@@ -19,6 +19,8 @@ Login creates a random 32-byte session identifier. Its SHA-256 digest, credentia
 
 Logout requires a valid session and CSRF token, deletes the session record, and clears the browser cookie. A copied cookie can no longer be replayed. Other logged-in sessions remain active.
 
+Successful login with an existing valid session atomically replaces that session. A copied old cookie and its CSRF token stop working; failed login leaves the existing session intact. CSRF tokens are bound to the server-validated session identifier. Logout accepts POST only, and its cookie deletion retains the production Secure, HttpOnly and SameSite attributes. Refresh open admin forms after upgrading because their old CSRF values are no longer valid.
+
 Restarting with the same credentials and signing key preserves valid sessions. Changing either configuration invalidates all old sessions when the updated app starts. Older running workers cannot authenticate or issue sessions against the new database credential tag. Restart all workers with consistent configuration; running incompatible configurations against one database is unsupported and can cause repeated invalidation. There is no refresh token or sliding extension.
 
 The schema additions are additive: `admin_auth_config`, `admin_sessions`, and `admin_login_limits`. Existing order/menu tables and data are preserved. Back up the database before deployment. All workers must use the same SQLite database; separate replicas/databases do not share revocation or rate limits. The pilot remains intended for one container with a persistent SQLite volume.
@@ -29,10 +31,22 @@ SQLite atomically counts login attempts across workers: at most 5 per client IP 
 
 Cross-origin/opaque-Origin login requests and Sec-Fetch-Site: cross-site are rejected. Requests without these browser headers remain compatible with non-browser clients; there is no pre-login CSRF token. All authenticated state-changing admin forms continue to require a session-bound HMAC CSRF token. Invalid Unicode CSRF and tracking-token input is rejected without a server error.
 
+## Order tracking and safe retries
+
+Order tracking credentials are stored as SHA-256 digests and expire 24 hours after order creation, with no sliding extension on reads, retries or restarts. Fresh server-generated tokens have 32 random bytes. Responses used for status tracking never include a token or its digest. Invalid, missing, mismatched and expired credentials all return 404 when tracking. Order data remains available to the administrator after tracking expires.
+
+The customer UI generates an independent random 32-byte token with Web Crypto before submitting an order, sends it as `Authorization: Bearer <token>`, and retains it for retries of that checkout. The server stores only its digest. Repeating an idempotency key requires the original unexpired token; the key alone returns 409 without revealing the order. Authenticated retries return the original order, regardless of any altered payload, without creating another order or extending expiry. Keep the same key and token after a lost response. Tokens are held in page memory; reloading the page does not recover them.
+
+API callers may omit Authorization on first creation to receive a server-generated token, but must supply that token on retries. Clients needing recovery after a lost first response should pre-generate a cryptographically random token (32–128 URL-safe characters, at least 192 bits of entropy) and send it on the first request. The browser uses Authorization for tracking too, avoiding credentials in URLs. Query-string `token` remains supported for older tracking clients; migrate those clients to headers and redact both authorization headers and legacy query tokens from logs. An explicitly supplied Authorization header takes precedence over a query token.
+
+Startup migrates existing orders transactionally across workers: adds `tracking_token_hash` and `tracking_expires_at`, hashes legacy tokens, clears their plaintext column, and anchors expiry to the original creation time. Existing links younger than 24 hours keep working; older links expire immediately. Invalid legacy dates fail closed. Restarting does not extend their lifetime. The old `tracking_token` column remains empty for schema compatibility. Stop all old application workers before upgrading; old code cannot coexist with this migration. Back up the database first. Clearing the column does not securely erase old SQLite pages, WAL files or backups: protect and rotate those according to your retention policy.
+
+Run regression tests with `python -m pytest -q` after installing `requirements.txt` and `pytest`. Tests cover session rotation/replay, logout/CSRF, tracking ownership and exact expiry, concurrent retries, and repeatable legacy migration.
+
 ## What remains outside this change
 
 - Individual accounts, MFA, password recovery, role-specific permissions and audit-event logging.
-- Order-tracking token expiry/hashing, query-string transmission, and idempotency-key ownership binding.
+- Removal of the legacy query-token API, durable customer login/recovery, and secure erasure of historical database backups.
 - Public order-spam prevention and centrally shared chat/voice budgets.
 - Verification of the actual host's TLS, proxy filtering, secret configuration, backups and monitoring.
 - Full dependency vulnerability scanning and live penetration testing.

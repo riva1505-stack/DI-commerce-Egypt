@@ -13,6 +13,7 @@ import os
 import re
 import secrets
 import sqlite3
+import time
 import unicodedata
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -43,6 +44,7 @@ BASE_DIR = Path(__file__).resolve().parent
 mimetypes.add_type("image/webp", ".webp")
 TEMPLATES = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 COOKIE_NAME = "ai_commerce_admin"
+TRACKING_SECONDS = 24 * 60 * 60
 ORDER_STATES = ("new", "accepted", "preparing", "ready", "completed", "cancelled")
 CATEGORIES = ("بيتزا", "برجر", "مقبلات", "مشروبات", "حلويات", "أخرى")
 
@@ -136,6 +138,25 @@ def bootstrap(db_path: Path):
         );
         CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, created_at);
         """)
+        # Serialize the additive migration across workers. Clear legacy plaintext
+        # after hashing; expiry is anchored to creation, never to restart time.
+        db.execute("BEGIN IMMEDIATE")
+        columns = {row["name"] for row in db.execute("PRAGMA table_info(orders)")}
+        if "tracking_token_hash" not in columns:
+            db.execute("ALTER TABLE orders ADD COLUMN tracking_token_hash TEXT NOT NULL DEFAULT ''")
+        if "tracking_expires_at" not in columns:
+            db.execute("ALTER TABLE orders ADD COLUMN tracking_expires_at INTEGER NOT NULL DEFAULT 0")
+        for row in db.execute("SELECT id,tracking_token,created_at FROM orders WHERE tracking_token<>''").fetchall():
+            try:
+                created = datetime.fromisoformat(row["created_at"])
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=timezone.utc)
+                expires = int(created.timestamp()) + TRACKING_SECONDS
+            except (ValueError, OverflowError, OSError):
+                expires = 0  # Invalid legacy dates must fail closed.
+            db.execute("UPDATE orders SET tracking_token_hash=?,tracking_expires_at=?,tracking_token='' WHERE id=?",
+                       (hashlib.sha256(row["tracking_token"].encode()).hexdigest(), expires, row["id"]))
+        db.commit()
         db.execute("INSERT OR IGNORE INTO settings(key,value) VALUES ('restaurant_name','بيت المذاق')")
         db.execute("INSERT OR IGNORE INTO settings(key,value) VALUES ('tagline','طعم يفرّحك في كل لقمة')")
         db.execute("INSERT OR IGNORE INTO settings(key,value) VALUES ('table_count','20')")
@@ -273,8 +294,7 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
             raise HTTPException(status_code=401, detail="يجب تسجيل الدخول")
 
     def csrf_for(req: Request) -> str:
-        cookie = req.cookies.get(COOKIE_NAME, "")
-        return hmac.new(secret_key.encode(), ("csrf:" + cookie).encode(), hashlib.sha256).hexdigest()
+        return hmac.new(secret_key.encode(), ("csrf:" + req.state.admin_session_id).encode(), hashlib.sha256).hexdigest()
 
     def verify_csrf(req: Request, token: str):
         login_required(req)
@@ -430,10 +450,22 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         return {"text": "أرشّح لك الاختيارات المتاحة دي من منيو المطعم. الأسعار النهائية تُحسب وقت تأكيد الطلب.", "item_ids": [p["id"] for p in featured], "needs_staff": False}
 
     def order_response(order: sqlite3.Row) -> dict[str, Any]:
-        return {"id": order["id"], "reference": order["reference"], "tracking_token": order["tracking_token"], "table_no": order["table_no"], "total_piasters": order["total_piasters"], "status": order["status"], "created_at": order["created_at"]}
+        return {key: order[key] for key in ("id", "reference", "table_no", "total_piasters", "status", "created_at")}
+
+    def bearer_token(request: Request) -> str:
+        scheme, _, value = request.headers.get("authorization", "").partition(" ")
+        return value if scheme.lower() == "bearer" else ""
+
+    def tracking_valid(order: sqlite3.Row, token: str) -> bool:
+        return bool(re.fullmatch(r"[A-Za-z0-9_-]{32,128}", token)
+                    and order["tracking_expires_at"] > int(time.time())
+                    and hmac.compare_digest(order["tracking_token_hash"], hashlib.sha256(token.encode()).hexdigest()))
 
     @app.post("/api/orders", status_code=201)
-    def create_order(payload: OrderRequest):
+    def create_order(payload: OrderRequest, request: Request):
+        supplied_token = bearer_token(request)
+        if "authorization" in request.headers and not re.fullmatch(r"[A-Za-z0-9_-]{32,128}", supplied_token):
+            raise HTTPException(status_code=400, detail="رمز التتبع غير صحيح")
         with dbconn(db_path) as db:
             db.execute("BEGIN IMMEDIATE")
             try:
@@ -442,8 +474,11 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
                     raise HTTPException(status_code=422, detail="رقم الطاولة غير موجود")
                 existing = db.execute("SELECT * FROM orders WHERE idempotency_key=?", (payload.idempotency_key,)).fetchone()
                 if existing:
+                    # An idempotency key alone is not proof of order ownership.
+                    if not tracking_valid(existing, supplied_token):
+                        raise HTTPException(status_code=409, detail="تعذر إعادة الطلب دون رمز التتبع الأصلي")
                     db.execute("COMMIT")
-                    return order_response(existing)
+                    return order_response(existing) | {"tracking_token": supplied_token}
                 snapshots = []
                 total = 0
                 for line in payload.items:
@@ -465,28 +500,31 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
                     raise HTTPException(status_code=409, detail="السعر أو التوافر تغيّر. حدّثي المنيو وراجعي الإجمالي قبل تأكيد الطلب.")
                 if total > 10_000_000_00:
                     raise HTTPException(status_code=422, detail="قيمة الطلب كبيرة جدًا")
-                token = secrets.token_urlsafe(24)
+                token = supplied_token or secrets.token_urlsafe(32)
                 stamp = now_utc()
                 reference = "ACE-" + secrets.token_hex(4).upper()
-                row = db.execute("""INSERT INTO orders (reference,idempotency_key,tracking_token,table_no,note,total_piasters,status,created_at,updated_at)
-                    VALUES (?,?,?,?,?,?,?,?,?)""", (reference, payload.idempotency_key, token, payload.table_no, payload.note.strip(), total, "new", stamp, stamp))
+                row = db.execute("""INSERT INTO orders (reference,idempotency_key,tracking_token,table_no,note,total_piasters,status,created_at,updated_at,tracking_token_hash,tracking_expires_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (reference, payload.idempotency_key, "", payload.table_no, payload.note.strip(), total, "new", stamp, stamp,
+                    hashlib.sha256(token.encode()).hexdigest(), int(time.time()) + TRACKING_SECONDS))
                 order_id = row.lastrowid
                 db.executemany("""INSERT INTO order_items (order_id,menu_item_id,name_snapshot,unit_price_piasters,quantity,addons_snapshot,line_total_piasters)
                     VALUES (?,?,?,?,?,?,?)""", [(order_id, *s) for s in snapshots])
                 order = db.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
                 db.execute("COMMIT")
-                return order_response(order)
+                return order_response(order) | {"tracking_token": token}
             except Exception:
                 db.execute("ROLLBACK")
                 raise
 
     @app.get("/api/orders/{reference}")
-    def track_order(reference: str, token: str = ""):
+    def track_order(reference: str, request: Request, token: str = ""):
+        # Query tokens remain supported for existing clients; the UI uses headers.
+        token = bearer_token(request) if "authorization" in request.headers else token
         with dbconn(db_path) as db:
             order = db.execute("SELECT * FROM orders WHERE reference=?", (reference,)).fetchone()
-        if not order or not token or not hmac.compare_digest(order["tracking_token"].encode(), token.encode()):
+        if not order or not tracking_valid(order, token):
             raise HTTPException(status_code=404, detail="لم يتم العثور على الطلب")
-        return {k: v for k, v in order_response(order).items() if k != "tracking_token"}
+        return order_response(order)
 
     @app.get("/admin/login", response_class=HTMLResponse)
     def admin_login(request: Request):
@@ -511,7 +549,8 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         supplied = str(form.get("password", ""))
         if not await run_in_threadpool(auth.password_matches, supplied):
             return TEMPLATES.TemplateResponse(request, "login.html", {"error": True}, status_code=401)
-        sid = await run_in_threadpool(auth.create_session)
+        previous_sid = request.state.admin_session_id if is_admin(request) else None
+        sid = await run_in_threadpool(auth.create_session, previous_sid)
         if sid is None:
             raise HTTPException(status_code=401, detail="تم تغيير بيانات الدخول. حاولي مجددًا.")
         token = app.state.serializer.dumps({"role": "admin", "sid": sid})
@@ -525,7 +564,7 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         verify_csrf(request, str(form.get("csrf", "")))
         await run_in_threadpool(auth.revoke_session, request.state.admin_session_id)
         response = RedirectResponse("/admin/login", status_code=303)
-        response.delete_cookie(COOKIE_NAME, path="/")
+        response.delete_cookie(COOKIE_NAME, path="/", httponly=True, secure=production, samesite="lax")
         return response
 
     @app.get("/admin", response_class=HTMLResponse)

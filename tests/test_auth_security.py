@@ -192,3 +192,143 @@ def test_non_ascii_tracking_token_is_404(tmp_path):
     with TestClient(make_app(tmp_path / "test.db")) as client:
         order = client.post("/api/orders", json={"table_no":1,"idempotency_key":"auth-regression-order-1234","expected_total_piasters":18500,"items":[{"item_id":1,"quantity":1}]}).json()
         assert client.get(f"/api/orders/{order['reference']}", params={"token":"é"}).status_code == 404
+
+
+def test_relogin_revokes_previous_session_and_csrf(tmp_path):
+    app = make_app(tmp_path / "test.db")
+    with TestClient(app) as client, TestClient(app) as thief:
+        old_cookie = login(client)
+        old_csrf = csrf(client)
+        new_cookie = login(client)
+        assert new_cookie != old_cookie
+        thief.cookies.set(COOKIE_NAME, old_cookie)
+        assert thief.get("/admin/pulse").status_code == 401
+        assert client.post("/admin/logout", data={"csrf": old_csrf}).status_code == 403
+        assert client.get("/admin/pulse").status_code == 200
+        assert client.post("/admin/logout", data={"csrf": csrf(client)}, follow_redirects=False).status_code == 303
+
+
+def test_failed_relogin_does_not_revoke_valid_session(tmp_path):
+    with TestClient(make_app(tmp_path / "test.db")) as client:
+        login(client)
+        assert client.post("/admin/login", data={"password": "wrong"}).status_code == 401
+        assert client.get("/admin/pulse").status_code == 200
+
+
+def test_logout_requires_post_and_own_csrf(tmp_path):
+    app = make_app(tmp_path / "test.db")
+    with TestClient(app) as first, TestClient(app) as second:
+        login(first)
+        login(second)
+        assert first.get("/admin/logout").status_code == 405
+        assert first.post("/admin/logout").status_code == 403
+        assert first.post("/admin/logout", data={"csrf": csrf(second)}).status_code == 403
+        assert first.get("/admin/pulse").status_code == 200
+
+
+def order_payload():
+    return {"table_no": 1, "idempotency_key": "tracking-regression-order-1234",
+            "expected_total_piasters": 18500, "items": [{"item_id": 1, "quantity": 1}]}
+
+
+def test_tracking_hash_expiry_and_idempotency_ownership(tmp_path):
+    path = tmp_path / "test.db"
+    with TestClient(make_app(path)) as client:
+        # A pre-generated secret permits safe retries even if the first response is lost.
+        token = "a" * 64
+        headers = {"Authorization": "Bearer " + token}
+        result = client.post("/api/orders", json=order_payload(), headers=headers)
+        assert result.status_code == 201
+        order = result.json()
+        url = f"/api/orders/{order['reference']}"
+        with sqlite3.connect(path) as db:
+            raw, digest, expiry = db.execute("SELECT tracking_token,tracking_token_hash,tracking_expires_at FROM orders").fetchone()
+        assert raw == ""
+        assert digest == hashlib.sha256(token.encode()).hexdigest()
+        tracked = client.get(url, headers=headers)
+        assert tracked.status_code == 200
+        assert tracked.headers["cache-control"] == "no-store"
+        assert "tracking_token" not in tracked.json() and "tracking_token_hash" not in tracked.json()
+        assert client.get(url, params={"token": token}, headers={"Authorization": "Basic invalid"}).status_code == 404
+        assert client.post("/api/orders", json=order_payload(), headers=headers).json() == order
+        for bad_headers in ({}, {"Authorization": "Bearer " + "b" * 64}):
+            denied = client.post("/api/orders", json=order_payload(), headers=bad_headers)
+            assert denied.status_code == 409
+            assert token not in denied.text and order["reference"] not in denied.text
+            assert client.get(url, headers=bad_headers).status_code == 404
+        with patch("app.time.time", return_value=expiry):
+            assert client.get(url, headers=headers).status_code == 404
+            assert client.post("/api/orders", json=order_payload(), headers=headers).status_code == 409
+        with sqlite3.connect(path) as db:
+            assert db.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize("header", ["Basic abc", "Bearer short", "Bearer " + "x" * 129, "Bearer "])
+def test_malformed_order_bearer_rejected(tmp_path, header):
+    with TestClient(make_app(tmp_path / "test.db")) as client:
+        assert client.post("/api/orders", json=order_payload(), headers={"Authorization": header}).status_code == 400
+
+
+def test_tracking_token_is_bound_to_order(tmp_path):
+    with TestClient(make_app(tmp_path / "test.db")) as client:
+        first = client.post("/api/orders", json=order_payload()).json()
+        second_payload = order_payload() | {"idempotency_key": "another-order-key-12345"}
+        second = client.post("/api/orders", json=second_payload).json()
+        assert client.get(f"/api/orders/{second['reference']}",
+                          headers={"Authorization": "Bearer " + first["tracking_token"]}).status_code == 404
+
+
+@pytest.mark.parametrize("created_at,valid", [("2026-01-01T00:00:00+00:00", True),
+                                             ("2025-12-30T00:00:00+00:00", False),
+                                             ("invalid", False)])
+def test_legacy_tracking_migration_preserves_orders_and_expiry(tmp_path, created_at, valid):
+    from datetime import datetime
+    from app import bootstrap
+    path = tmp_path / "legacy.db"
+    legacy_token = "L" * 32
+    with sqlite3.connect(path) as db:
+        db.execute("""CREATE TABLE orders (
+            id INTEGER PRIMARY KEY, reference TEXT UNIQUE NOT NULL,
+            idempotency_key TEXT UNIQUE NOT NULL, tracking_token TEXT NOT NULL,
+            table_no INTEGER NOT NULL, note TEXT NOT NULL DEFAULT '', total_piasters INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'new', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""")
+        db.execute("INSERT INTO orders VALUES (1,'ACE-LEGACY','legacy-order-key',?,1,'',18500,'new',?,?)",
+                   (legacy_token, created_at, created_at))
+    stamp = datetime.fromisoformat("2026-01-01T12:00:00+00:00").timestamp()
+    with patch("app.time.time", return_value=stamp):
+        app = make_app(path)
+        with TestClient(app) as client:
+            assert client.get("/api/orders/ACE-LEGACY", params={"token": legacy_token}).status_code == (200 if valid else 404)
+        with sqlite3.connect(path) as db:
+            before = db.execute("SELECT tracking_token,tracking_token_hash,tracking_expires_at FROM orders").fetchone()
+            assert before[0] == "" and before[1] == hashlib.sha256(legacy_token.encode()).hexdigest()
+        bootstrap(path)
+        with sqlite3.connect(path) as db:
+            assert db.execute("SELECT tracking_token,tracking_token_hash,tracking_expires_at FROM orders").fetchone() == before
+
+
+def test_concurrent_order_retries_create_one_order(tmp_path):
+    path = tmp_path / "test.db"
+    app = make_app(path)
+    def submit(_):
+        with TestClient(app) as client:
+            result = client.post("/api/orders", json=order_payload(), headers={"Authorization": "Bearer " + "c" * 64})
+            assert result.status_code == 201
+            return result.json()
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(submit, range(4)))
+    assert all(result == results[0] for result in results)
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 1
+
+
+def test_production_logout_cookie_attributes(monkeypatch, tmp_path):
+    monkeypatch.setenv("APP_ENV", "production")
+    with TestClient(make_app(tmp_path / "test.db"), base_url="https://testserver") as client:
+        login(client)
+        result = client.post("/admin/logout", data={"csrf": csrf(client)}, follow_redirects=False)
+        assert result.status_code == 303
+        cookie = result.headers["set-cookie"].lower()
+        for attribute in ("secure", "httponly", "samesite=lax", "max-age=0", "path=/"):
+            assert attribute in cookie
+        assert client.get("/admin/pulse").status_code == 401

@@ -77,7 +77,8 @@ def test_wrong_addon_rejected(client):
 def test_idempotency_reuses_order(client):
     request_id=str(uuid.uuid4())
     one=client.post('/api/orders',json=payload(request_id=request_id))
-    two=client.post('/api/orders',json=payload(request_id=request_id))
+    two=client.post('/api/orders',json=payload(request_id=request_id),
+                    headers={'Authorization': 'Bearer ' + one.json()['tracking_token']})
     assert one.status_code==201 and two.status_code==201
     assert one.json()['id']==two.json()['id']
     with sqlite3.connect(client.app.state.db_path) as db:

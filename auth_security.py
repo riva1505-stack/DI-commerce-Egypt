@@ -103,7 +103,7 @@ class AdminAuth:
             db.commit()
         return retry
 
-    def create_session(self) -> str | None:
+    def create_session(self, previous_token: str | None = None) -> str | None:
         token = secrets.token_urlsafe(32)
         now = int(time.time())
         with self.database() as db:
@@ -113,6 +113,9 @@ class AdminAuth:
                 db.rollback()
                 return None  # A worker with stale credentials may not issue new sessions.
             db.execute("DELETE FROM admin_sessions WHERE expires_at<=?", (now,))
+            if isinstance(previous_token, str) and re.fullmatch(r"[A-Za-z0-9_-]{43}", previous_token):
+                db.execute("DELETE FROM admin_sessions WHERE token_hash=? AND credential_tag=?",
+                           (hashlib.sha256(previous_token.encode()).hexdigest(), self.credential_tag))
             db.execute("INSERT INTO admin_sessions VALUES (?, ?, ?)",
                        (hashlib.sha256(token.encode()).hexdigest(), self.credential_tag, now + SESSION_SECONDS))
             db.commit()
@@ -129,6 +132,8 @@ class AdminAuth:
         return row is not None
 
     def revoke_session(self, token: str):
+        if not isinstance(token, str) or not re.fullmatch(r"[A-Za-z0-9_-]{43}", token):
+            return
         with self.database() as db:
             db.execute("DELETE FROM admin_sessions WHERE token_hash=?", (hashlib.sha256(token.encode()).hexdigest(),))
 

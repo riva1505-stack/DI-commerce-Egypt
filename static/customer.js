@@ -6,7 +6,8 @@ let voiceSession = false, voiceSessionVersion = 0, speechActive = false;
 let voiceBackendStt = false, voiceBackendTts = false;
 let mediaRecorder = null, micStream = null, recordTimer = null, recordChunks = [];
 let currentAudio = null, currentAudioUrl = null, fallbackAudioUrl = null, recordingPending = false;
-let menu = [], settings = {}, category = 'all', cart = [], modalItem = null, modalQty = 1, lastOrder = null, orderTimer = null, requestKey = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}-${Math.random()}`;
+function randomToken(){return Array.from(crypto.getRandomValues(new Uint8Array(32)), b=>b.toString(16).padStart(2,'0')).join('')}
+let menu = [], settings = {}, category = 'all', cart = [], modalItem = null, modalQty = 1, lastOrder = null, orderTimer = null, requestKey = randomToken(), requestToken = randomToken();
 const fmt = (piasters) => (piasters / 100).toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ج.م';
 const esc = (text) => String(text ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const stateLabels = {new:'بانتظار موافقة المطعم', accepted:'تم قبول الطلب', preparing:'قيد التحضير', ready:'طلبك جاهز', completed:'تم اكتمال الطلب', cancelled:'تم إلغاء الطلب'};
@@ -38,7 +39,7 @@ function openModal(id){
 function checkedAddons(){return [...document.querySelectorAll('#modalAddons input:checked')].map(e=>Number(e.value)).sort((a,b)=>a-b)}
 function updateModalPrice(){if(!modalItem)return;const ids=checkedAddons();let sum=modalItem.price_piasters+modalItem.addons.filter(a=>ids.includes(a.id)).reduce((s,a)=>s+a.price_piasters,0);$('modalPrice').textContent=fmt(sum*modalQty)}
 function closeModal(){ $('addonModal').hidden=true; if($('cartDrawer').getAttribute('aria-hidden')==='true')document.body.classList.remove('no-scroll'); }
-function renewKey(){requestKey=crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}-${Math.random()}`}
+function renewKey(){requestKey=randomToken();requestToken=randomToken()}
 function addToCart(){
  if(!modalItem)return; const ids=checkedAddons(); const key = `${modalItem.id}|${ids.join(',')}`; const existing=cart.find(x=>x.key===key);
  if(existing){existing.quantity=Math.min(20,existing.quantity+modalQty)} else{cart.push({key,item_id:modalItem.id,addon_ids:ids,quantity:modalQty})}
@@ -63,13 +64,13 @@ async function submitOrder(){
  const button=$('submitOrder');button.disabled=true;button.textContent='جاري إرسال الطلب...';feedback('');
  try{
   const body={table_no,note:$('orderNote').value.trim(),idempotency_key:requestKey,expected_total_piasters:subtotal(),items:cart.map(({item_id,quantity,addon_ids})=>({item_id,quantity,addon_ids}))};
-  const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${requestToken}`},body:JSON.stringify(body)});
   const data=await r.json();if(!r.ok){let message=typeof data.detail==='string'?data.detail:'تعذر إرسال الطلب';if(r.status===409){await loadMenu();}throw Error(message)}
   lastOrder=data;cart=[];renewKey();renderCart();closeCart();$('orderRef').textContent=data.reference;$('orderAmount').textContent=fmt(data.total_piasters);$('orderStatus').textContent=stateLabels[data.status]||data.status;$('successModal').hidden=false;document.body.classList.add('no-scroll');
   $('orderNote').value=''; if(orderTimer)clearInterval(orderTimer);orderTimer=setInterval(checkOrderStatus,7000);
  }catch(err){feedback(err.message||'حدث خطأ أثناء إرسال الطلب. جرّبي مرة أخرى.');}finally{button.disabled=!cart.length;button.textContent='تأكيد وإرسال الطلب ←';}
 }
-async function checkOrderStatus(){if(!lastOrder)return;try{const r=await fetch(`/api/orders/${encodeURIComponent(lastOrder.reference)}?token=${encodeURIComponent(lastOrder.tracking_token)}`);if(!r.ok)return;const d=await r.json();$('orderStatus').textContent=stateLabels[d.status]||d.status;if(['completed','cancelled'].includes(d.status)){clearInterval(orderTimer);orderTimer=null}}catch(e){/* network retries */}}
+async function checkOrderStatus(){if(!lastOrder)return;try{const r=await fetch(`/api/orders/${encodeURIComponent(lastOrder.reference)}`,{headers:{'Authorization':`Bearer ${lastOrder.tracking_token}`}});if(!r.ok){if(r.status===404){clearInterval(orderTimer);orderTimer=null}return}const d=await r.json();$('orderStatus').textContent=stateLabels[d.status]||d.status;if(['completed','cancelled'].includes(d.status)){clearInterval(orderTimer);orderTimer=null}}catch(e){/* network retries */}}
 // Customer-assistant dialogue is independent of checkout. Only the real menu can enter the cart.
 function chatLine(who, text, choices = []) {
  const thread = $('chatMessages');

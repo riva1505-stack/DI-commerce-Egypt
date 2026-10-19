@@ -44,3 +44,24 @@ def test_photo_menu_data_has_valid_prices_and_explicit_preview_status():
     assert prices["Mocha After 8"] == 4499
     assert prices["Bokharest Burger Double"] == 11999
     assert prices["Mojito Orange"] == 5999
+
+
+def test_bokharest_responsive_layout_keeps_menu_accessible():
+    """Guard the phone/tablet/desktop styling and cache-busted stylesheet."""
+    html = (BASE_DIR / "templates" / "bokharest.html").read_text(encoding="utf-8")
+    css = (BASE_DIR / "static" / "bokharest.css").read_text(encoding="utf-8")
+    assert 'name="viewport"' in html
+    assert "width=device-width" in html
+    assert "/static/bokharest.css?v=2" in html
+    assert 'id="search"' in html and 'id="categories"' in html
+    assert "@media (max-width:639px)" in css
+    assert "@media (max-width:1023px)" in css
+    assert "@media (min-width:1024px)" in css
+    assert ".menu-grid{grid-template-columns:minmax(0,1fr)" in css
+    assert ".menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}" in css
+    assert ".menu-grid{grid-template-columns:repeat(3,minmax(0,1fr))" in css
+    assert ".categories{flex-wrap:nowrap;overflow-x:auto" in css
+    assert ".search input{min-width:0;font-size:16px}" in css
+    assert ".cat:focus-visible" in css
+    assert "@media (prefers-reduced-motion:reduce)" in css
+    assert css.count("{") == css.count("}")

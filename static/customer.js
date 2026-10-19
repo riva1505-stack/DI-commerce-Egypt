@@ -1,13 +1,27 @@
 (() => {
 'use strict';
 const $ = (id) => document.getElementById(id);
+const diI18n = window.DI18n;
+const locale = () => diI18n ? diI18n.current() : {language:'ar',dialect:'egyptian',speechLanguage:'ar-EG'};
+const tr = (id) => diI18n ? diI18n.t(id) : id;
+const categoryNames = {
+ en:{'بيتزا':'Pizza','برجر':'Burgers','مقبلات':'Starters','مشروبات':'Drinks','حلويات':'Desserts','أخرى':'Other'},
+ fr:{'بيتزا':'Pizzas','برجر':'Burgers','مقبلات':'Entrées','مشروبات':'Boissons','حلويات':'Desserts','أخرى':'Autres'}
+};
+const categoryName = (name) => categoryNames[locale().language]?.[name] || name;
+const orderLabels = {
+ en:{new:'Awaiting staff approval',accepted:'Accepted',preparing:'Preparing',ready:'Ready',completed:'Completed',cancelled:'Cancelled'},
+ fr:{new:'En attente de confirmation',accepted:'Acceptée',preparing:'En préparation',ready:'Prête',completed:'Terminée',cancelled:'Annulée'}
+};
+const orderLabel = (state) => orderLabels[locale().language]?.[state] || stateLabels[state] || state;
+
 let chatHistory = [], chatBusy = false, chatVoice = false, voiceRecognizer = null;
 let voiceSession = false, voiceSessionVersion = 0, speechActive = false;
 let voiceBackendStt = false, voiceBackendTts = false;
 let mediaRecorder = null, micStream = null, recordTimer = null, recordChunks = [];
 let currentAudio = null, currentAudioUrl = null, fallbackAudioUrl = null, recordingPending = false;
 let menu = [], settings = {}, category = 'all', cart = [], modalItem = null, modalQty = 1, lastOrder = null, orderTimer = null, requestKey = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}-${Math.random()}`;
-const fmt = (piasters) => (piasters / 100).toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ج.م';
+const fmt = (piasters) => (piasters / 100).toLocaleString(locale().speechLanguage, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (locale().language==='ar' ? ' ج.م' : ' EGP');
 const esc = (text) => String(text ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const stateLabels = {new:'بانتظار موافقة المطعم', accepted:'تم قبول الطلب', preparing:'قيد التحضير', ready:'طلبك جاهز', completed:'تم اكتمال الطلب', cancelled:'تم إلغاء الطلب'};
 const urlTable = Number(new URLSearchParams(location.search).get('table'));
@@ -16,7 +30,7 @@ async function loadMenu(){
  try {
   const r = await fetch('/api/menu'); if(!r.ok) throw Error('تعذر تحميل المنيو');
   const data = await r.json(); menu = data.items; settings = data.settings;
-  $('categoryTabs').innerHTML = `<button class="tab active" data-category="all">كل الأصناف</button>` + [...new Set(menu.map(x=>x.category))].map(x => `<button class="tab" data-category="${esc(x)}">${esc(x)}</button>`).join('');
+  $('categoryTabs').innerHTML = `<button class="tab active" data-category="all">${esc(tr("all"))}</button>` + [...new Set(menu.map(x=>x.category))].map(x => `<button class="tab" data-category="${esc(x)}">${esc(categoryName(x))}</button>`).join('');
   const tableLimit = Number(settings.table_count) || 20;
   $('tableNumber').max = tableLimit;
   if(Number.isInteger(urlTable) && urlTable >= 1 && urlTable <= tableLimit){$('tableNumber').value = urlTable; $('tableLabel').textContent = `رقم ${urlTable}`}
@@ -65,11 +79,11 @@ async function submitOrder(){
   const body={table_no,note:$('orderNote').value.trim(),idempotency_key:requestKey,expected_total_piasters:subtotal(),items:cart.map(({item_id,quantity,addon_ids})=>({item_id,quantity,addon_ids}))};
   const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const data=await r.json();if(!r.ok){let message=typeof data.detail==='string'?data.detail:'تعذر إرسال الطلب';if(r.status===409){await loadMenu();}throw Error(message)}
-  lastOrder=data;cart=[];renewKey();renderCart();closeCart();$('orderRef').textContent=data.reference;$('orderAmount').textContent=fmt(data.total_piasters);$('orderStatus').textContent=stateLabels[data.status]||data.status;$('successModal').hidden=false;document.body.classList.add('no-scroll');
+  lastOrder=data;cart=[];renewKey();renderCart();closeCart();$('orderRef').textContent=data.reference;$('orderAmount').textContent=fmt(data.total_piasters);$('orderStatus').textContent=orderLabel(data.status);$('successModal').hidden=false;document.body.classList.add('no-scroll');
   $('orderNote').value=''; if(orderTimer)clearInterval(orderTimer);orderTimer=setInterval(checkOrderStatus,7000);
- }catch(err){feedback(err.message||'حدث خطأ أثناء إرسال الطلب. جرّبي مرة أخرى.');}finally{button.disabled=!cart.length;button.textContent='تأكيد وإرسال الطلب ←';}
+ }catch(err){feedback(err.message||'حدث خطأ أثناء إرسال الطلب. جرّبي مرة أخرى.');}finally{button.disabled=!cart.length;button.textContent=tr('sendOrder');}
 }
-async function checkOrderStatus(){if(!lastOrder)return;try{const r=await fetch(`/api/orders/${encodeURIComponent(lastOrder.reference)}?token=${encodeURIComponent(lastOrder.tracking_token)}`);if(!r.ok)return;const d=await r.json();$('orderStatus').textContent=stateLabels[d.status]||d.status;if(['completed','cancelled'].includes(d.status)){clearInterval(orderTimer);orderTimer=null}}catch(e){/* network retries */}}
+async function checkOrderStatus(){if(!lastOrder)return;try{const r=await fetch(`/api/orders/${encodeURIComponent(lastOrder.reference)}?token=${encodeURIComponent(lastOrder.tracking_token)}`);if(!r.ok)return;const d=await r.json();$('orderStatus').textContent=orderLabel(d.status);if(['completed','cancelled'].includes(d.status)){clearInterval(orderTimer);orderTimer=null}}catch(e){/* network retries */}}
 // Customer-assistant dialogue is independent of checkout. Only the real menu can enter the cart.
 function chatLine(who, text, choices = []) {
  const thread = $('chatMessages');
@@ -106,10 +120,10 @@ function recordingNow() { return Boolean(mediaRecorder && mediaRecorder.state ==
 function refreshVoiceControls() {
  const sessionButton=$('chatVoiceSession'), micActive=recordingNow() || Boolean(voiceRecognizer);
  sessionButton.setAttribute('aria-pressed',String(voiceSession));
- sessionButton.textContent=voiceSession?'■ إنهاء المحادثة الصوتية':'🎤 ابدأ محادثة صوتية';
+ sessionButton.textContent=voiceSession?tr('stopVoice'):tr('startVoice');
  sessionButton.classList.toggle('active',voiceSession);
  $('chatVoiceToggle').setAttribute('aria-pressed',String(chatVoice));
- $('chatVoiceToggle').textContent=chatVoice?'🔊 صوت الردود: مفعّل':'🔈 صوت الردود: مغلق';
+ $('chatVoiceToggle').textContent=chatVoice?tr('readOn'):tr('readOff');
  $('chatMic').setAttribute('aria-pressed',String(micActive));
  $('chatMic').setAttribute('aria-label',micActive?'أوقف التسجيل وأرسل صوتك':'تحدث للكتابة في المحادثة');
  $('chatMic').classList.toggle('listening',micActive);
@@ -181,7 +195,7 @@ async function startRecording() {
    const audio=new Blob(pieces,{type:mimeType});
    if(audio.size>2500000){setVoiceStatus('التسجيل كبير. حاول بجملة قصيرة.');return}
    try {
-    const response=await fetch('/api/voice/transcribe',{method:'POST',headers:{'Content-Type':mimeType},body:audio});
+    const response=await fetch('/api/voice/transcribe?language='+encodeURIComponent(locale().language),{method:'POST',headers:{'Content-Type':mimeType},body:audio});
     const data=await response.json();
     if(version!==voiceSessionVersion)return;
     if(!response.ok)throw Error(typeof data.detail==='string'?data.detail:'تعذر فهم الكلام.');
@@ -207,7 +221,7 @@ function startBrowserRecognition() {
  if(chatBusy||voiceRecognizer)return;
  let recognizer;
  try {
-  recognizer=new SpeechRecognitionAPI();recognizer.lang='ar-EG';recognizer.continuous=false;recognizer.interimResults=true;
+  recognizer=new SpeechRecognitionAPI();recognizer.lang=locale().speechLanguage;recognizer.continuous=false;recognizer.interimResults=true;
   voiceRecognizer=recognizer;refreshVoiceControls();setVoiceStatus('🎙️ بسمعك...');
   let delivered=false,finalText='';
   recognizer.onresult=event=>{
@@ -251,9 +265,9 @@ function browserSay(text,version) {
  if(!hasSpeechOut){setVoiceStatus('الصوت غير متاح الآن؛ الرد مكتوب أمامك.');return}
  try {
   const utterance=new SpeechSynthesisUtterance(String(text).slice(0,500));
-  utterance.lang='ar-EG';utterance.rate=0.95;
+  utterance.lang=locale().speechLanguage;utterance.rate=0.95;
   const voices=window.speechSynthesis.getVoices();
-  utterance.voice=voices.find(v=>v.lang.toLowerCase()==='ar-eg')||voices.find(v=>v.lang.toLowerCase().startsWith('ar'))||null;
+  utterance.voice=voices.find(v=>v.lang.toLowerCase()===locale().speechLanguage.toLowerCase())||voices.find(v=>v.lang.toLowerCase().startsWith(locale().language))||null;
   speechActive=true;
   setVoiceStatus('🔊 المساعد بيتكلم، والرد مكتوب أمامك.');
   utterance.onend=()=>audioComplete(version);
@@ -268,7 +282,7 @@ async function sayReply(text,{force=false}={}) {
  if(voiceBackendTts){
   try {
    setVoiceStatus('بجهّز الرد الصوتي...');
-   const response=await fetch('/api/voice/speak',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:String(text).slice(0,500)})});
+   const response=await fetch('/api/voice/speak',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:String(text).slice(0,500),language:locale().language,dialect:locale().dialect})});
    if(!response.ok)throw Error('الصوت الخارجي غير متاح');
    const blob=await response.blob();
    if(version!==voiceSessionVersion)return;
@@ -304,7 +318,7 @@ async function sendChat(message) {
  chatHistory = chatHistory.slice(-19);
  const pending = chatLine('bot','بفكر في أنسب اختيارات ليك...');
  try {
-  const r = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:chatHistory})});
+  const r = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:chatHistory,language:locale().language,dialect:locale().dialect})});
   const answer = await r.json();
   if (!r.ok) throw Error(typeof answer.detail === 'string' ? answer.detail : 'حصل عطل مؤقت في المحادثة.');
   pending.remove(); chatLine('bot',answer.text,answer.choices||[]); chatQuickReplies(answer.quick_replies||[]);
@@ -314,7 +328,7 @@ async function sendChat(message) {
  } catch (err) {
   pending.remove(); chatLine('bot',err.message||'حصلت مشكلة. ممكن نجرب تاني؟');
   if(voiceSession) stopVoiceSession('تعذّر جلب الرد. اكتب طلبك أو ابدأ المكالمة مجددًا.');
-  chatHistory.pop(); chatQuickReplies(['بيتزا','برجر','حاجة خفيفة']);
+  chatHistory.pop(); chatQuickReplies([tr('pizza'),tr('burger'),tr('light')]);
  } finally { chatBusy = false; $('chatSend').disabled = false; if (!voiceSession) $('chatInput').focus(); }
 }
 function onChatForm(event) {event.preventDefault();sendChat($('chatInput').value)}
@@ -339,7 +353,7 @@ function toggleVoiceSession() {
  if(!canHearCustomer()||!canSpeakCustomer())return;
  voiceSession=true;voiceSessionVersion+=1;chatVoice=true;refreshVoiceControls();
  // Audio may require a further user tap on some mobile browsers; text stays usable.
- sayReply('أهلاً بيك! أنا مساعد المطعم. تحب تاكل إيه النهارده؟',{force:true});
+ sayReply(tr('greeting'),{force:true});
 }
 function onMicrophoneClick() {
  if(recordingNow()){finishRecording({submit:true});return;}
@@ -359,5 +373,18 @@ document.addEventListener('click',e=>{
 $('searchInput').addEventListener('input',renderMenu);$('openCartTop').addEventListener('click',openCart);$('floatingCart').addEventListener('click',openCart);$('closeCart').addEventListener('click',closeCart);$('overlay').addEventListener('click',closeCart);$('closeModal').addEventListener('click',closeModal);$('heroAsk').addEventListener('click',()=>{$('assistant').scrollIntoView({behavior:'smooth'});$('chatInput').focus()});
 $('modalAddons').addEventListener('change',updateModalPrice);$('qtyMinus').addEventListener('click',()=>{modalQty=Math.max(1,modalQty-1);$('qtyValue').textContent=modalQty;updateModalPrice()});$('qtyPlus').addEventListener('click',()=>{modalQty=Math.min(20,modalQty+1);$('qtyValue').textContent=modalQty;updateModalPrice()});$('confirmAddon').addEventListener('click',addToCart);$('submitOrder').addEventListener('click',submitOrder);$('chatForm').addEventListener('submit',onChatForm);$('chatMic').addEventListener('click',onMicrophoneClick);$('chatVoiceSession').addEventListener('click',toggleVoiceSession);$('chatVoiceToggle').addEventListener('click',()=>{chatVoice=!chatVoice;if(!chatVoice){stopVoiceSession('الصوت متوقف؛ الكتابة متاحة.')}refreshVoiceControls();});
 $('closeSuccess').addEventListener('click',()=>{$('successModal').hidden=true;document.body.classList.remove('no-scroll')});
+function resetForLanguageChange() {
+ stopVoiceSession();
+ chatHistory=[]; chatBusy=false;
+ category='all';
+ const thread=$('chatMessages');
+ thread.innerHTML='';
+ chatLine('bot',tr('greeting'));
+ chatQuickReplies([tr('pizza'),tr('burger'),tr('light'),tr('drinks')]);
+ $('chatSend').textContent=tr('send');
+ loadMenu();
+ refreshVoiceControls();
+}
+document.addEventListener('di:locale-change',resetForLanguageChange);
 loadMenu(); initChat();
 })();

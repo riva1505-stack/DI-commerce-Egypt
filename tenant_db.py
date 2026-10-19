@@ -30,13 +30,15 @@ def bootstrap(path):
           tenant_id INTEGER NOT NULL REFERENCES di_tenants(id),
           username TEXT NOT NULL,
           password_hash TEXT NOT NULL,
-          UNIQUE(tenant_id,username)
+          UNIQUE(tenant_id,username),
+          UNIQUE(tenant_id,id)
         );
         CREATE TABLE IF NOT EXISTS di_sessions (
           token_hash TEXT PRIMARY KEY,
           tenant_id INTEGER NOT NULL,
-          manager_id INTEGER NOT NULL REFERENCES di_managers(id),
-          expires_at INTEGER NOT NULL
+          manager_id INTEGER NOT NULL,
+          expires_at INTEGER NOT NULL,
+          FOREIGN KEY(tenant_id,manager_id) REFERENCES di_managers(tenant_id,id)
         );
         CREATE TABLE IF NOT EXISTS di_menu_items (
           id INTEGER PRIMARY KEY,

@@ -6,3 +6,5 @@ SUPPORTED_LANGUAGES = {
     "en-US": "English",
     "fr-FR": "French",
 }
+
+SPEECH_LANGUAGE = {"ar-EG": "ar", "ar-LB": "ar", "en-US": "en", "fr-FR": "fr"}

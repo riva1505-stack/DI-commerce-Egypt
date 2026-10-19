@@ -1,0 +1,1036 @@
+{
+  "restaurant": {
+    "id": "bokharest-demo",
+    "name_ar": "كافيه بوخاريست",
+    "name_en": "Café Bokharest",
+    "slug": "bokharest",
+    "status": "menu-preview-only",
+    "source": "10 menu photos supplied by user, 2026-10-20; current availability and prices unconfirmed",
+    "service_charge_percent": 12,
+    "vat_percent": 14,
+    "price_currency": "EGP",
+    "checkout_enabled": false
+  },
+  "categories": [
+    {
+      "slug": "coolers",
+      "name_ar": "كوكتيلات منعشة",
+      "name_en": "Coolers",
+      "emoji": "🍹",
+      "items": [
+        {
+          "id": 1,
+          "name_ar": "موهيتو برتقال",
+          "name_en": "Mojito Orange",
+          "price_piasters": 5999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 2,
+          "name_ar": "موهيتو أناناس",
+          "name_en": "Mojito Pineapple",
+          "price_piasters": 5999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 3,
+          "name_ar": "كيوي بطيخ",
+          "name_en": "Watermelon Kiwi",
+          "price_piasters": 5999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 4,
+          "name_ar": "بلو كوراساو",
+          "name_en": "Blue Curacao",
+          "price_piasters": 5999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 5,
+          "name_ar": "كيوي كلاودي",
+          "name_en": "Kiwi Cloudy",
+          "price_piasters": 5999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 6,
+          "name_ar": "عنب",
+          "name_en": "Grape berry",
+          "price_piasters": 5999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 7,
+          "name_ar": "موهيتو كلاسيك",
+          "name_en": "Mojito Classic",
+          "price_piasters": 5999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 8,
+          "name_ar": "توت ليمون",
+          "name_en": "Blueberry Lemon",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 9,
+          "name_ar": "موهيتو توت",
+          "name_en": "Mojito Blueberry",
+          "price_piasters": 5999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 10,
+          "name_ar": "موهيتو بوخاريست",
+          "name_en": "Mojito Bokharest",
+          "price_piasters": 5999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 11,
+          "name_ar": "صن شاين",
+          "name_en": "Sun Shine",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        }
+      ]
+    },
+    {
+      "slug": "appetizers",
+      "name_ar": "مقبلات لبنانية",
+      "name_en": "Lebanese Appetizers",
+      "emoji": "🥙",
+      "items": [
+        {
+          "id": 12,
+          "name_ar": "سجق شرقي",
+          "name_en": "Oriental Sausages",
+          "price_piasters": 6999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": "hot"
+        },
+        {
+          "id": 13,
+          "name_ar": "مختارات شرقي",
+          "name_en": "Oriental Selection",
+          "price_piasters": 11999,
+          "description_ar": "ممبار، ورق عنب، سمبوسك لحم وجبن، حواوشي",
+          "description_en": "Mombar, vine leaves, meat & cheese sambousek, hawawshi",
+          "subsection": "hot"
+        },
+        {
+          "id": 14,
+          "name_ar": "طحينة",
+          "name_en": "Tahina",
+          "price_piasters": 2999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": "cold"
+        },
+        {
+          "id": 15,
+          "name_ar": "سلطة بلدي",
+          "name_en": "Oriental Salad",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": "cold"
+        },
+        {
+          "id": 16,
+          "name_ar": "بابا غنوج",
+          "name_en": "Baba Ghanoug",
+          "price_piasters": 2999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": "cold"
+        },
+        {
+          "id": 17,
+          "name_ar": "فتوش",
+          "name_en": "Fattoush",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": "cold"
+        }
+      ]
+    },
+    {
+      "slug": "smoothies",
+      "name_ar": "سموذي",
+      "name_en": "Smoothies",
+      "emoji": "🥤",
+      "items": [
+        {
+          "id": 18,
+          "name_ar": "ريفريشينج",
+          "name_en": "Refreshing",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 19,
+          "name_ar": "بوخاريست سموذي",
+          "name_en": "Smoothie Bokharest",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 20,
+          "name_ar": "توت أزرق",
+          "name_en": "Blueberry",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 21,
+          "name_ar": "خوخ",
+          "name_en": "Peach",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 22,
+          "name_ar": "توت أحمر",
+          "name_en": "Red Berry",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 23,
+          "name_ar": "أناناس",
+          "name_en": "Pineapple",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 24,
+          "name_ar": "باشون فروت",
+          "name_en": "Passion Fruit",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 25,
+          "name_ar": "موز",
+          "name_en": "Banana",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 26,
+          "name_ar": "مانجو",
+          "name_en": "Mango",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 27,
+          "name_ar": "ليمون",
+          "name_en": "Lemon",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 28,
+          "name_ar": "ليمون نعناع",
+          "name_en": "Lemon Mint",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 29,
+          "name_ar": "بطيخ",
+          "name_en": "Watermelon",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 30,
+          "name_ar": "كيوي",
+          "name_en": "Kiwi",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 31,
+          "name_ar": "فراولة",
+          "name_en": "Strawberry",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        }
+      ]
+    },
+    {
+      "slug": "specialty",
+      "name_ar": "مشروبات مميزة",
+      "name_en": "Specialty Beverage",
+      "emoji": "✨",
+      "items": [
+        {
+          "id": 32,
+          "name_ar": "موكا أفتر 8",
+          "name_en": "Mocha After 8",
+          "price_piasters": 4499,
+          "description_ar": "مشروب ساخن",
+          "description_en": "Hot drink",
+          "subsection": ""
+        },
+        {
+          "id": 33,
+          "name_ar": "رمان",
+          "name_en": "Pomegranate",
+          "price_piasters": 4999,
+          "description_ar": "كوكتيل: كانتلوب، موهيتو، أناناس، جراندين",
+          "description_en": "Cocktail: cantaloupe, mojito, pineapple, grenadine",
+          "subsection": ""
+        },
+        {
+          "id": 34,
+          "name_ar": "ليمون لبان",
+          "name_en": "Lemon Gum",
+          "price_piasters": 6499,
+          "description_ar": "مشروب بارد",
+          "description_en": "Cooler",
+          "subsection": ""
+        },
+        {
+          "id": 35,
+          "name_ar": "ريد يوجرت",
+          "name_en": "Red Yogurt",
+          "price_piasters": 6499,
+          "description_ar": "سموذي",
+          "description_en": "Smoothie",
+          "subsection": ""
+        },
+        {
+          "id": 36,
+          "name_ar": "أفوكادو ميكس",
+          "name_en": "Avocado Mix Fruits",
+          "price_piasters": 6499,
+          "description_ar": "أفوكادو، كيوي، موز، عسل",
+          "description_en": "Avocado, kiwi, banana, honey",
+          "subsection": ""
+        },
+        {
+          "id": 37,
+          "name_ar": "آيس سبانش لاتيه",
+          "name_en": "Ice Spanish Latte",
+          "price_piasters": 6499,
+          "description_ar": "مشروب مثلج",
+          "description_en": "Iced latte",
+          "subsection": ""
+        },
+        {
+          "id": 38,
+          "name_ar": "فرابتشينو أوريو",
+          "name_en": "Oreo Frappaccino",
+          "price_piasters": 5499,
+          "description_ar": "فرابيه",
+          "description_en": "Frappe",
+          "subsection": ""
+        },
+        {
+          "id": 39,
+          "name_ar": "لوتس شيك",
+          "name_en": "Lotus Shake",
+          "price_piasters": 6999,
+          "description_ar": "ميلك شيك",
+          "description_en": "Milkshake",
+          "subsection": ""
+        },
+        {
+          "id": 40,
+          "name_ar": "زبادي فواكه",
+          "name_en": "Fruit Yogurt",
+          "price_piasters": 6499,
+          "description_ar": "زبادي",
+          "description_en": "Yogurt",
+          "subsection": ""
+        },
+        {
+          "id": 41,
+          "name_ar": "جريتال تمر",
+          "name_en": "Gretal Dates",
+          "price_piasters": 7499,
+          "description_ar": "تمر",
+          "description_en": "Dates",
+          "subsection": ""
+        }
+      ]
+    },
+    {
+      "slug": "sandwiches",
+      "name_ar": "ساندويتشات",
+      "name_en": "Sandwiches",
+      "emoji": "🥪",
+      "items": [
+        {
+          "id": 42,
+          "name_ar": "كفتة",
+          "name_en": "Kofta",
+          "price_piasters": 6499,
+          "description_ar": "يقدم مع البطاطس المحمرة والمخلل",
+          "description_en": "Served with French fries and pickles",
+          "subsection": ""
+        },
+        {
+          "id": 43,
+          "name_ar": "سجق",
+          "name_en": "Oriental Sausages",
+          "price_piasters": 6999,
+          "description_ar": "يقدم مع البطاطس المحمرة والمخلل",
+          "description_en": "Served with French fries and pickles",
+          "subsection": ""
+        },
+        {
+          "id": 44,
+          "name_ar": "كبدة إسكندراني",
+          "name_en": "Alex. Liver",
+          "price_piasters": 6999,
+          "description_ar": "يقدم مع البطاطس المحمرة والمخلل والطحينة",
+          "description_en": "Served with French fries, pickles and tahina",
+          "subsection": ""
+        },
+        {
+          "id": 45,
+          "name_ar": "تشيكن فاهيتا",
+          "name_en": "Chicken Fajita",
+          "price_piasters": 7999,
+          "description_ar": "يقدم مع البطاطس المحمرة وساور كريم",
+          "description_en": "Served with French fries and sour cream",
+          "subsection": ""
+        },
+        {
+          "id": 46,
+          "name_ar": "تشيز برجر",
+          "name_en": "Cheese Burger",
+          "price_piasters": 6999,
+          "description_ar": "صوص الجبن الأمريكي وكول سلو؛ يقدم مع البطاطس المحمرة",
+          "description_en": "American cheese sauce and coleslaw; served with French fries",
+          "subsection": ""
+        },
+        {
+          "id": 47,
+          "name_ar": "برجر بوخاريست",
+          "name_en": "Bokharest Burger",
+          "price_piasters": 8499,
+          "description_ar": "بيف مدخن، مشروم فريش، كول سلو؛ يقدم مع البطاطس المحمرة",
+          "description_en": "Smoked beef, fresh mushroom, coleslaw; served with French fries",
+          "subsection": ""
+        },
+        {
+          "id": 48,
+          "name_ar": "دبل برجر بوخاريست",
+          "name_en": "Bokharest Burger Double",
+          "price_piasters": 11999,
+          "description_ar": "صوص الجبن الأمريكي، كول سلو؛ يقدم مع البطاطس المحمرة",
+          "description_en": "American cheese sauce and coleslaw; served with French fries",
+          "subsection": ""
+        },
+        {
+          "id": 49,
+          "name_ar": "شيش طاووق",
+          "name_en": "Shish Tawook",
+          "price_piasters": 6999,
+          "description_ar": "يقدم مع البطاطس المحمرة والمخلل",
+          "description_en": "Served with French fries and pickles",
+          "subsection": ""
+        },
+        {
+          "id": 50,
+          "name_ar": "بيف كاساديا",
+          "name_en": "Beef Quesadilla",
+          "price_piasters": 9999,
+          "description_ar": "يقدم مع البطاطس المحمرة وساور كريم",
+          "description_en": "Served with French fries and sour cream",
+          "subsection": ""
+        },
+        {
+          "id": 51,
+          "name_ar": "تشيكن كاساديا",
+          "name_en": "Chicken Quesadilla",
+          "price_piasters": 7999,
+          "description_ar": "يقدم مع البطاطس المحمرة وساور كريم",
+          "description_en": "Served with French fries and sour cream",
+          "subsection": ""
+        },
+        {
+          "id": 52,
+          "name_ar": "بيف فاهيتا",
+          "name_en": "Beef Fajita",
+          "price_piasters": 9999,
+          "description_ar": "يقدم مع البطاطس المحمرة وساور كريم",
+          "description_en": "Served with French fries and sour cream",
+          "subsection": ""
+        },
+        {
+          "id": 53,
+          "name_ar": "تشيكن زنجر",
+          "name_en": "Chicken Zinger",
+          "price_piasters": 8499,
+          "description_ar": "يقدم مع البطاطس المحمرة وصوص المسترد",
+          "description_en": "Served with French fries and mustard sauce",
+          "subsection": ""
+        }
+      ]
+    },
+    {
+      "slug": "hot-drinks",
+      "name_ar": "مشروبات ساخنة",
+      "name_en": "Hot Drinks",
+      "emoji": "☕",
+      "items": [
+        {
+          "id": 54,
+          "name_ar": "لاتيه كريم بروليه",
+          "name_en": "Crème Brulee Latte",
+          "price_piasters": 4499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 55,
+          "name_ar": "إسبريسو سنجل",
+          "name_en": "Espresso Single",
+          "price_piasters": 2999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 56,
+          "name_ar": "إسبريسو دبل",
+          "name_en": "Espresso Double",
+          "price_piasters": 3999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 57,
+          "name_ar": "لاتيه",
+          "name_en": "Latte",
+          "price_piasters": 4499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 58,
+          "name_ar": "ميكاتو",
+          "name_en": "Macchiato",
+          "price_piasters": 3999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 59,
+          "name_ar": "كابتشينو",
+          "name_en": "Cappuccino",
+          "price_piasters": 3999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 60,
+          "name_ar": "فرينش بريس",
+          "name_en": "French Press",
+          "price_piasters": 4499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 61,
+          "name_ar": "موكا",
+          "name_en": "Mocha",
+          "price_piasters": 4999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 62,
+          "name_ar": "أوريو لاتيه",
+          "name_en": "Oreo Latte",
+          "price_piasters": 4999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 63,
+          "name_ar": "فلات وايت",
+          "name_en": "Flat White",
+          "price_piasters": 3499,
+          "description_ar": "كراميل، فانيليا، كريمة أيرلندية",
+          "description_en": "Caramel, vanilla, Irish cream",
+          "subsection": ""
+        },
+        {
+          "id": 64,
+          "name_ar": "ديب وايت",
+          "name_en": "Deep White",
+          "price_piasters": 4999,
+          "description_ar": "كريم بروليه وكوكيز شوكولاتة",
+          "description_en": "Crème brûlée and chocolate cookies",
+          "subsection": ""
+        },
+        {
+          "id": 65,
+          "name_ar": "نسكافيه",
+          "name_en": "Nescafe",
+          "price_piasters": 3999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 66,
+          "name_ar": "قهوة تركي",
+          "name_en": "Turkish Coffee",
+          "price_piasters": 2999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 67,
+          "name_ar": "قهوة تركي دبل",
+          "name_en": "Double Turkish Coffee",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 68,
+          "name_ar": "قهوة فرنساوي",
+          "name_en": "French Coffee",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 69,
+          "name_ar": "هوت شوكليت",
+          "name_en": "Hot Chocolate",
+          "price_piasters": 4999,
+          "description_ar": "مارشميلو، بندق",
+          "description_en": "Marshmallow, hazelnut",
+          "subsection": ""
+        }
+      ]
+    },
+    {
+      "slug": "salads",
+      "name_ar": "سلطات",
+      "name_en": "Salads",
+      "emoji": "🥗",
+      "items": [
+        {
+          "id": 70,
+          "name_ar": "تاكو سالاد",
+          "name_en": "Taco Salad",
+          "price_piasters": 9999,
+          "description_ar": "دجاج مشوي، تورتيلا مقرمشة، أفوكادو، شيدر، زيتون، فاصوليا حمراء، ذرة",
+          "description_en": "Grilled chicken, crispy tortilla, avocado, cheddar, olive, red beans, corn",
+          "subsection": ""
+        },
+        {
+          "id": 71,
+          "name_ar": "تونة سالاد",
+          "name_en": "Tuna Salad",
+          "price_piasters": 7499,
+          "description_ar": "تونة، طماطم، فلفل ألوان، خس، بصل",
+          "description_en": "Tuna, tomatoes, peppers, lettuce, onions",
+          "subsection": ""
+        },
+        {
+          "id": 72,
+          "name_ar": "روكا سالاد",
+          "name_en": "Roca Salad",
+          "price_piasters": 8499,
+          "description_ar": "جرجير، حلوم، مشروم، بارميزان، عين جمل",
+          "description_en": "Watercress, halloumi, mushrooms, parmesan, walnuts",
+          "subsection": ""
+        },
+        {
+          "id": 73,
+          "name_ar": "تشيكن سيزر",
+          "name_en": "Chicken Caesar",
+          "price_piasters": 8499,
+          "description_ar": "صدور دجاج مشوي، خس، خبز محمص، بارميزان",
+          "description_en": "Grilled chicken breast, lettuce, croutons, parmesan",
+          "subsection": ""
+        },
+        {
+          "id": 74,
+          "name_ar": "بوخاريست مانجو أفوكادو",
+          "name_en": "Bokharest Mango Avocado",
+          "price_piasters": 11999,
+          "description_ar": "مأكولات بحرية، أفوكادو، مشروم، جرجير، خس، صوص مانجو",
+          "description_en": "Seafood, avocado, mushrooms, watercress, lettuce, mango dressing",
+          "subsection": ""
+        },
+        {
+          "id": 75,
+          "name_ar": "سلطة يونانية",
+          "name_en": "Greek Salad",
+          "price_piasters": 4999,
+          "description_ar": "طماطم، خيار، فلفل، بصل، جبنة فيتا",
+          "description_en": "Tomatoes, cucumber, sweet pepper, onion, feta",
+          "subsection": ""
+        },
+        {
+          "id": 76,
+          "name_ar": "شيف سالاد",
+          "name_en": "Chef Salad",
+          "price_piasters": 10999,
+          "description_ar": "دجاج، خس، طماطم، خيار، فلفل، رومي مدخن، بيف مدخن",
+          "description_en": "Chicken, lettuce, tomatoes, cucumber, pepper, smoked turkey, smoked beef",
+          "subsection": ""
+        }
+      ]
+    },
+    {
+      "slug": "fresh-juice",
+      "name_ar": "عصائر طازجة",
+      "name_en": "Fresh Juice",
+      "emoji": "🍊",
+      "items": [
+        {
+          "id": 77,
+          "name_ar": "ليمون",
+          "name_en": "Lemon",
+          "price_piasters": 2499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 78,
+          "name_ar": "ليمون نعناع",
+          "name_en": "Lemon Mint",
+          "price_piasters": 2799,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 79,
+          "name_ar": "مانجو",
+          "name_en": "Mango",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 80,
+          "name_ar": "فراولة",
+          "name_en": "Strawberries",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 81,
+          "name_ar": "جوافة",
+          "name_en": "Guava",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 82,
+          "name_ar": "برتقال",
+          "name_en": "Orange",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 83,
+          "name_ar": "موز باللبن",
+          "name_en": "Banana with Milk",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 84,
+          "name_ar": "بطيخ",
+          "name_en": "Watermelon",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 85,
+          "name_ar": "كيوي",
+          "name_en": "Kiwi",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 86,
+          "name_ar": "عنب أحمر",
+          "name_en": "Red Grapes",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 87,
+          "name_ar": "قهوة بالتمر",
+          "name_en": "Dates with Coffee",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 88,
+          "name_ar": "كنتالوب",
+          "name_en": "Cantaloupe",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 89,
+          "name_ar": "أفوكادو عسل",
+          "name_en": "Avocado Honey",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": "avocado"
+        },
+        {
+          "id": 90,
+          "name_ar": "أفوكادو آيس كريم",
+          "name_en": "Avocado Ice Cream",
+          "price_piasters": 5499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": "avocado"
+        },
+        {
+          "id": 91,
+          "name_ar": "أفوكادو مكسرات",
+          "name_en": "Avocado Nuts",
+          "price_piasters": 5499,
+          "description_ar": "لوز، بندق، عين جمل",
+          "description_en": "Almond, hazelnut, walnut",
+          "subsection": "avocado"
+        },
+        {
+          "id": 92,
+          "name_ar": "زبادي عسل",
+          "name_en": "Honey Yogurt",
+          "price_piasters": 3499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": "yogurt"
+        },
+        {
+          "id": 93,
+          "name_ar": "زبادي فواكه",
+          "name_en": "Fruit Yogurt",
+          "price_piasters": 3999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": "yogurt"
+        },
+        {
+          "id": 94,
+          "name_ar": "زبادي توت",
+          "name_en": "Blueberry Yogurt",
+          "price_piasters": 4999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": "yogurt"
+        }
+      ]
+    },
+    {
+      "slug": "chicken",
+      "name_ar": "دجاج",
+      "name_en": "Chicken",
+      "emoji": "🍗",
+      "items": [
+        {
+          "id": 95,
+          "name_ar": "كانتري تشيكن",
+          "name_en": "Country Chicken",
+          "price_piasters": 14999,
+          "description_ar": "قطعتان من صدور الدجاج مع شرائح تركي وجبن أمريكي وبقسماط",
+          "description_en": "2 boneless chicken breast pieces with turkey slices, American cheese and breadcrumbs",
+          "subsection": ""
+        },
+        {
+          "id": 96,
+          "name_ar": "ترياكي تشيكن",
+          "name_en": "Teriyaki Chicken",
+          "price_piasters": 12999,
+          "description_ar": "قطعتان من صدور الدجاج المشوية مع صوص الترياكي والفلفل والسمسم المحمص",
+          "description_en": "2 grilled chicken breast pieces with teriyaki sauce, peppers and roasted sesame",
+          "subsection": ""
+        }
+      ]
+    },
+    {
+      "slug": "tagines",
+      "name_ar": "طواجن وأرز",
+      "name_en": "Tagines & Rice",
+      "emoji": "🍲",
+      "items": [
+        {
+          "id": 97,
+          "name_ar": "طاجن لحمة بالبصل",
+          "name_en": "Meat with Onions",
+          "price_piasters": 15999,
+          "description_ar": "لحم بتلو، بصل، بهارات بوخاريست، يقدم مع أرز بالشعرية",
+          "description_en": "Veal, onions, Bokharest spices, served with vermicelli rice",
+          "subsection": ""
+        },
+        {
+          "id": 98,
+          "name_ar": "طاجن بامية باللحم",
+          "name_en": "Okra with Meat Bram",
+          "price_piasters": 15999,
+          "description_ar": "بامية، لحم بتلو، صلصة طماطم، يقدم مع أرز بالشعرية",
+          "description_en": "Okra, veal, tomato sauce, served with vermicelli rice",
+          "subsection": ""
+        },
+        {
+          "id": 99,
+          "name_ar": "طاجن ملوخية سادة",
+          "name_en": "Molokheia Plain",
+          "price_piasters": 3999,
+          "description_ar": "يقدم مع أرز بالشعرية",
+          "description_en": "Served with vermicelli rice",
+          "subsection": ""
+        },
+        {
+          "id": 100,
+          "name_ar": "طاجن ملوخية نصف دجاجة",
+          "name_en": "Molokheia Half Fried Chicken",
+          "price_piasters": 10999,
+          "description_ar": "يقدم مع أرز بالشعرية",
+          "description_en": "Served with vermicelli rice",
+          "subsection": ""
+        },
+        {
+          "id": 101,
+          "name_ar": "طاجن ملوخية باللحمة",
+          "name_en": "Molokheia Fried Meat",
+          "price_piasters": 15999,
+          "description_ar": "يقدم مع أرز بالشعرية",
+          "description_en": "Served with vermicelli rice",
+          "subsection": ""
+        },
+        {
+          "id": 102,
+          "name_ar": "طاجن أرز معمر سادة",
+          "name_en": "Mummar Rice Plain",
+          "price_piasters": 3999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 103,
+          "name_ar": "طاجن أرز معمر باللحمة",
+          "name_en": "Mummar Rice Meat",
+          "price_piasters": 13499,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        },
+        {
+          "id": 104,
+          "name_ar": "طاجن أرز معمر بالدجاج",
+          "name_en": "Mummar Rice Chicken",
+          "price_piasters": 7999,
+          "description_ar": "",
+          "description_en": "",
+          "subsection": ""
+        }
+      ]
+    }
+  ],
+  "notes": {
+    "ar": "الأسعار من صور المنيو المرسلة وتحتاج تأكيد المطعم؛ يُذكر بالصور رسم خدمة 12% وضريبة قيمة مضافة 14%. هذه معاينة ولا تستقبل طلبات.",
+    "en": "Prices are transcribed from supplied menu photos and need confirmation. Photos state a 12% service charge and 14% VAT. Preview only; no orders are accepted."
+  }
+}

@@ -291,6 +291,11 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
             settings = settings_from(db)
         return TEMPLATES.TemplateResponse(request, "customer.html", {"settings": settings})
 
+    @app.get("/bokharest", response_class=HTMLResponse)
+    def bokharest_preview(request: Request):
+        """Read-only, isolated restaurant-menu demo. Never routes checkout to the pilot database."""
+        return TEMPLATES.TemplateResponse(request, "bokharest.html", {})
+
     @app.get("/api/menu")
     def api_menu():
         with dbconn(db_path) as db:

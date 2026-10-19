@@ -1,1 +1,1 @@
-Manager access must always be scoped to tenant_id and use separate authentication from platform administration.
+Tenant authentication must be separate from platform administration. Orders, menus, and manager sessions must be scoped by tenant_id.

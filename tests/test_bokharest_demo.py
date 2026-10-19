@@ -59,7 +59,7 @@ def test_cart_quote_demo_idempotency_and_isolation(tmp_path):
 def test_whatsapp_disabled_without_api_secrets():
     from bokharest_demo import _wa_ready, _send_whatsapp
     with patch.dict("os.environ", {
-        "BOKHAREST_ALERT_PHONE": "201030954545",
+        "BOKHAREST_ALERT_PHONE": "201000000000",
         "BOKHAREST_WA_TOKEN": "",
         "BOKHAREST_WA_PHONE_ID": "",
         "BOKHAREST_WA_TEMPLATE": ""

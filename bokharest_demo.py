@@ -119,6 +119,10 @@ def install_bokharest_demo(app, db_path, is_admin, verify_csrf, csrf_for, templa
         """Price a test cart using the separate, server-side Bokharest menu."""
         return _quote(payload.items)
 
+    @app.post("/api/bokharest/quote")
+    def calculate_demo_quote(cart: BokharestCart):
+        return _quote(cart.items)
+
     @app.post("/api/bokharest/demo-orders", status_code=201)
     def place_demo_order(payload: BokharestOrder, request: Request):
         quote_data = _quote(payload.items)

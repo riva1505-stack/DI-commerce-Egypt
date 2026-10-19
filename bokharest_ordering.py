@@ -131,7 +131,7 @@ def _bootstrap(db_path: Path):
         db.close()
 
 
-def install_bokharest_ordering(app, db_path, is_admin, verify_csrf, templates):
+def install_bokharest_ordering(app, db_path, is_admin, verify_csrf, csrf_for, templates):
     """Install restaurant-scoped routes without touching the sample restaurant."""
     _bootstrap(db_path)
 
@@ -219,8 +219,7 @@ def install_bokharest_ordering(app, db_path, is_admin, verify_csrf, templates):
         return templates.TemplateResponse(request, "bokharest_admin.html",
                                           {"orders": rows, "statuses": STATES,
                                            "checkout_enabled": _enabled(_catalog()[0]),
-                                           "csrf": verify_csrf.__closure__ and ""})
-        # Form CSRF is added via a dedicated GET token in the parent app.
+                                           "csrf": csrf_for(request)})
 
     @app.post("/admin/bokharest-orders/{order_id}/status")
     async def bokharest_status(order_id: int, request: Request):

@@ -188,6 +188,8 @@ class ChatTurn(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatTurn] = Field(min_length=1, max_length=20)
+    language: str = Field(default="ar", pattern=r"^(ar|en|fr)$")
+    dialect: str = Field(default="egyptian", pattern=r"^(egyptian|lebanese|standard)$")
 
 
 class OrderLine(BaseModel):
@@ -206,6 +208,8 @@ class OrderRequest(BaseModel):
 
 class SpeechPayload(BaseModel):
     text: str = Field(min_length=1, max_length=500)
+    language: str = Field(default="ar", pattern=r"^(ar|en|fr)$")
+    dialect: str = Field(default="egyptian", pattern=r"^(egyptian|lebanese|standard)$")
 
 
 def create_app(db_path: Path | None = None, *, admin_password: str | None = None, secret_key: str | None = None) -> FastAPI:
@@ -321,7 +325,9 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
                 "max_record_seconds": 12}
 
     @app.post("/api/voice/transcribe")
-    async def voice_transcribe(request: Request):
+    async def voice_transcribe(request: Request, language: str = "ar"):
+        if language not in ("ar", "en", "fr"):
+            raise HTTPException(status_code=422, detail="Unsupported speech language")
         key = voice_key()
         if not key:
             raise HTTPException(status_code=503, detail="خدمة تحويل الصوت إلى نص لم تُفعَّل بعد.")
@@ -353,7 +359,7 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
                   "audio/aac": ".aac", "audio/m4a": ".m4a", "audio/x-m4a": ".m4a"}.get(mime, ".webm")
         try:
             transcript = await transcribe_audio(raw, "customer-voice" + suffix, mime, api_key=key,
-                                                model=os.environ.get("VOICE_STT_MODEL", "gpt-4o-mini-transcribe"))
+                                                model=os.environ.get("VOICE_STT_MODEL", "gpt-4o-mini-transcribe"), language=language)
         except Exception:
             logging.getLogger(__name__).warning("STT provider request failed", exc_info=True)
             raise HTTPException(status_code=503, detail="تعذّر فهم الصوت حاليًا. جرّب تاني أو اكتب طلبك.")
@@ -370,7 +376,8 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         try:
             audio_bytes = await synthesize_speech(payload.text, api_key=key,
                            model=os.environ.get("VOICE_TTS_MODEL", "gpt-4o-mini-tts"),
-                           voice=os.environ.get("VOICE_TTS_VOICE", "coral"))
+                           voice=os.environ.get("VOICE_TTS_VOICE", "coral"),
+                           language=payload.language, dialect=payload.dialect)
         except Exception:
             logging.getLogger(__name__).warning("TTS provider request failed", exc_info=True)
             raise HTTPException(status_code=503, detail="الصوت غير متاح حاليًا. اقرأ الرد على الشاشة.")
@@ -387,7 +394,7 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
             items = menu_from(db)
         # Local food-safety redirection comes before any external provider call.
         if has_allergy(messages):
-            return guided_chat(messages, items)
+            return guided_chat(messages, items, language=payload.language, dialect=payload.dialect)
         key = os.environ.get("OPENAI_API_KEY", "").strip()
         if key:
             ip = request.client.host if request.client else "unknown"
@@ -399,10 +406,11 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
                 raise HTTPException(status_code=429, detail="طلبت كتير خلال دقيقة. استنى شوية وجرّب تاني.")
             bucket.append(stamp)
             try:
-                return await ai_chat(messages, items, key=key, model=os.environ.get("AI_MODEL", "gpt-4.1-mini"))
+                return await ai_chat(messages, items, key=key, model=os.environ.get("AI_MODEL", "gpt-4.1-mini"),
+                                     language=payload.language, dialect=payload.dialect)
             except Exception:
                 logging.getLogger(__name__).warning("AI provider unavailable; using guided dialogue", exc_info=True)
-        return guided_chat(messages, items)
+        return guided_chat(messages, items, language=payload.language, dialect=payload.dialect)
 
     @app.get("/api/suggest")
     def suggest(q: str = ""):

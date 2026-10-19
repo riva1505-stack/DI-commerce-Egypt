@@ -144,3 +144,9 @@ html[dir="ltr"] .chat-bubble,html[dir="ltr"] .menu-section,html[dir="ltr"] .draw
 html[dir="ltr"] .sidebar{border-left:0;border-right:1px solid #d6a16758}
 @media(max-width:750px){.di-language-wrap{max-width:170px;padding:4px 6px;gap:3px}.di-language-select{max-width:135px;font-size:11px}.top-actions{gap:5px}}
 @media(max-width:400px){.di-language-wrap{max-width:160px}.di-language-select{max-width:125px}}
+
+.bokharest-spotlight{display:flex;justify-content:space-between;align-items:center;gap:22px;padding:19px 26px;margin:20px 0;border:1px solid #d79a6b88;border-radius:18px;background:linear-gradient(120deg,#302034,#452639);color:#fff}
+.bokharest-spotlight strong{font-weight:900;font-size:21px;color:#f6c991}
+.bokharest-spotlight p{font-size:13px;line-height:1.5;color:#efdbdf;margin:7px 0 0}
+.bokharest-spotlight .btn{flex-shrink:0;text-decoration:none;white-space:nowrap}
+@media(max-width:550px){.bokharest-spotlight{padding:16px;display:block}.bokharest-spotlight .btn{margin-top:14px;display:inline-flex;font-size:13px}.bokharest-spotlight strong{font-size:18px}}

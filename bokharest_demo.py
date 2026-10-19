@@ -21,7 +21,7 @@ from urllib.parse import quote
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from bokharest_ordering import BokharestOrder, _connect, _quote
+from bokharest_ordering import BokharestCart, BokharestOrder, _connect, _quote
 
 
 def _setup(db_path):
@@ -113,6 +113,11 @@ def install_bokharest_demo(app, db_path, is_admin, verify_csrf, csrf_for, templa
     _setup(db_path)
     attempts = defaultdict(deque)
     lock = Lock()
+
+    @app.post("/api/bokharest/quote")
+    def quote_cart(payload: BokharestCart):
+        """Price a test cart using the separate, server-side Bokharest menu."""
+        return _quote(payload.items)
 
     @app.post("/api/bokharest/demo-orders", status_code=201)
     def place_demo_order(payload: BokharestOrder, request: Request):

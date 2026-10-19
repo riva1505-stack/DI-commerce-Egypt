@@ -133,3 +133,14 @@ select option{background:#1f1324;color:white}
 }
 @media(max-width:400px){.hero h1{font-size:34px}.pilot-label{display:none}.menu-grid{grid-template-columns:1fr 1fr;gap:8px}.food-picture{height:110px}.food-copy{padding:10px}.food-stamp{font-size:9px;padding:4px 7px}.food-copy p{height:66px}.hero-orbit-bottom{right:3%}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Language choice stays legible and reachable on mobile without shifting the cart. */
+.di-language-wrap{display:inline-flex;align-items:center;gap:7px;background:#261725;color:#ffe3af;border:1px solid #d8a16b88;border-radius:12px;padding:6px 10px;max-width:205px}
+.di-language-select{appearance:auto;width:100%;max-width:165px;border:0;background:transparent;color:#fff0d0;padding:6px 2px;font-weight:700;cursor:pointer;font-size:13px}
+.di-language-select:focus{outline:2px solid var(--magenta);outline-offset:2px}
+.di-language-select option{background:#241426;color:#fff}
+html[dir="ltr"] .topbar,html[dir="ltr"] .hero-actions,html[dir="ltr"] .hero-foot{direction:ltr}
+html[dir="ltr"] .chat-bubble,html[dir="ltr"] .menu-section,html[dir="ltr"] .drawer{direction:ltr;text-align:left}
+html[dir="ltr"] .sidebar{border-left:0;border-right:1px solid #d6a16758}
+@media(max-width:750px){.di-language-wrap{max-width:170px;padding:4px 6px;gap:3px}.di-language-select{max-width:135px;font-size:11px}.top-actions{gap:5px}}
+@media(max-width:400px){.di-language-wrap{max-width:160px}.di-language-select{max-width:125px}}

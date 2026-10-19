@@ -9,8 +9,9 @@ def test_brand_integrated_in_all_pages(tmp_path):
         home=c.get('/')
         assert home.status_code == 200
         assert '/static/brand.css?v=1.0' in home.text
-        assert '/static/images/ai-commerce-logo.webp' in home.text
+        assert 'DI Commerce' in home.text and 'di-monogram' in home.text
         assert 'chatMic' in home.text and 'submitOrder' in home.text
+        assert '/static/i18n.js' in home.text and 'id="diLanguage"' in home.text
         login=c.get('/admin/login')
         assert login.status_code == 200
         assert '/static/brand.css?v=1.0' in login.text
@@ -18,7 +19,7 @@ def test_brand_integrated_in_all_pages(tmp_path):
         dashboard=c.get('/admin')
         assert dashboard.status_code==200
         assert 'class="admin-hero"' in dashboard.text
-        assert '/static/images/ai-commerce-logo.webp' in dashboard.text
+        assert 'DI Commerce' in dashboard.text and 'di-monogram' in dashboard.text
 
 
 def test_brand_assets_and_menu_api(tmp_path):

@@ -4,17 +4,17 @@
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const i18n = {
     ar: {
-      demo:"معاينة تجريبية",greeting:"أهلاً بيك في",intro:"تصفّح المشروبات والأكلات من صور المنيو المرسلة، واختار اللي يناسبك.",
+      demo:"تجربة طلبات بدون تنفيذ",greeting:"أهلاً بيك في",intro:"اختاري من المنيو، جرّبي السلة، وأكدي طلب تجريبي برقم الترابيزة — بدون إرسال طلب حقيقي.",
       menu:"المنيو",search:"ابحث عن صنف...",all:"كل الأقسام",items:"صنف",noItems:"لا توجد أصناف تطابق البحث.",
       important:"مهم قبل الطلب",legal:"هذه الصفحة معاينة للمنيو، وليست قناة لطلب الطعام. الأسعار من الصور المرسلة وقد تكون قديمة، وتحتاج تأكيد المطعم. للمكونات والحساسية اسأل موظف المطعم مباشرة.",
-      back:"العودة للمشروع الرئيسي ←",notice:"الأسعار من صور المنيو المرسلة وتحتاج تأكيد المطعم؛ تنص الصور على رسم خدمة 12% وضريبة قيمة مضافة 14%. هذه معاينة ولا تستقبل طلبات.",
+      back:"العودة للمشروع الرئيسي ←",testCart:"سلة التجربة",testOnly:"⚠️ تجربة داخلية: لن يُرسل طلب للمطعم الحقيقي، والأسعار تقديرية.",tableNo:"رقم الترابيزة",orderNote:"ملاحظة (اختياري)",sendDemo:"تأكيد الطلب التجريبي",notice:"الأسعار من صور المنيو المرسلة وتحتاج تأكيد المطعم؛ تنص الصور على رسم خدمة 12% وضريبة قيمة مضافة 14%. الطلبات هنا تجريبية فقط ولا تصل للمطعم.",
       error:"تعذّر تحميل المنيو حاليًا.",currency:"ج.م",preview:"معاينة",subHot:"ساخن",subCold:"بارد",subAvocado:"أفوكادو",subYogurt:"زبادي"
     },
     en: {
-      demo:"Preview only",greeting:"Welcome to",intro:"Explore the drinks and dishes from the supplied menu photos.",
+      demo:"Test orders only",greeting:"Welcome to",intro:"Browse the menu and test ordering by table number. No real restaurant orders are placed.",
       menu:"Menu",search:"Search items...",all:"All categories",items:"items",noItems:"No items match this search.",
       important:"Before ordering",legal:"This is a read-only menu preview, not an ordering service. Prices were transcribed from supplied photos and may be outdated; confirm with the restaurant. Ask staff about ingredients and allergies.",
-      back:"Back to DI Commerce →",notice:"Prices are from supplied photos and require restaurant confirmation. The images state 12% service and 14% VAT. This preview does not accept orders.",
+      back:"Back to DI Commerce →",testCart:"Test cart",testOnly:"⚠️ Demo only: no order will reach the restaurant; prices are estimates.",tableNo:"Table number",orderNote:"Note (optional)",sendDemo:"Place test order",notice:"Prices are from supplied photos and require restaurant confirmation. The images state 12% service and 14% VAT. Test orders never reach the restaurant.",
       error:"Unable to load the menu.",currency:"EGP",preview:"Preview",subHot:"Hot",subCold:"Cold",subAvocado:"Avocado",subYogurt:"Yogurt"
     }
   };
@@ -41,7 +41,7 @@
     $("categories").innerHTML = cats.map(c=>'<button type="button" class="cat" data-cat="'+esc(c.slug)+'" aria-pressed="'+String(c.slug===active)+'">'+esc(c.emoji)+' '+esc(c.label)+'</button>').join("");
     const found = all.filter(i=>(active==="all"||i.category===active) && (!query || (i.name_ar+" "+i.name_en+" "+i.description_ar+" "+i.description_en).toLocaleLowerCase().includes(query)));
     $("menuCount").textContent = found.length+" "+t("items");
-    $("menuGrid").innerHTML = found.length ? found.map(i=>'<article class="dish"><div class="dish-head"><div><h3>'+esc(nameOf(i))+'</h3><p class="english-name">'+esc(lang==="ar"?i.name_en:i.name_ar)+'</p></div><span class="dish-emoji" aria-hidden="true">'+esc(i.emoji)+'</span></div>'+(descriptionOf(i)?'<p class="description">'+esc(descriptionOf(i))+'</p>':'<p class="description"></p>')+'<div class="dish-foot"><span class="price" dir="ltr">'+esc(fmt(i.price_piasters))+' <small class="currency">'+t("currency")+'</small></span>'+(i.subsection?'<span class="subsection">'+esc(subLabel(i.subsection))+'</span>':'')+'</div></article>').join("") : '<div class="empty">'+t("noItems")+'</div>';
+    $("menuGrid").innerHTML = found.length ? found.map(i=>'<article class="dish" data-item-id="'+esc(i.id)+'"><div class="dish-head"><div><h3>'+esc(nameOf(i))+'</h3><p class="english-name">'+esc(lang==="ar"?i.name_en:i.name_ar)+'</p></div><span class="dish-emoji" aria-hidden="true">'+esc(i.emoji)+'</span></div>'+(descriptionOf(i)?'<p class="description">'+esc(descriptionOf(i))+'</p>':'<p class="description"></p>')+'<div class="dish-foot"><span class="price" dir="ltr">'+esc(fmt(i.price_piasters))+' <small class="currency">'+t("currency")+'</small></span>'+(i.subsection?'<span class="subsection">'+esc(subLabel(i.subsection))+'</span>':'')+'<button type="button" class="dish-add" data-add-bokharest="'+esc(i.id)+'">'+(lang==="ar"?"أضف للسلة +":"Add to cart +")+'</button></div></article>').join("") : '<div class="empty">'+t("noItems")+'</div>';
   }
   async function load() {
     try {

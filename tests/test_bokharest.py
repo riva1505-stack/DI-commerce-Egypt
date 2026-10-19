@@ -52,7 +52,7 @@ def test_bokharest_responsive_layout_keeps_menu_accessible():
     css = (BASE_DIR / "static" / "bokharest.css").read_text(encoding="utf-8")
     assert 'name="viewport"' in html
     assert "width=device-width" in html
-    assert "/static/bokharest.css?v=2" in html
+    assert "/static/bokharest.css?v=3" in html
     assert 'id="search"' in html and 'id="categories"' in html
     assert "@media (max-width:639px)" in css
     assert "@media (max-width:1023px)" in css
@@ -65,3 +65,66 @@ def test_bokharest_responsive_layout_keeps_menu_accessible():
     assert ".cat:focus-visible" in css
     assert "@media (prefers-reduced-motion:reduce)" in css
     assert css.count("{") == css.count("}")
+
+
+def test_bokharest_demo_order_separate_from_existing_restaurant(tmp_path: Path, monkeypatch):
+    """Server estimates prices, records a test order, and cannot contact live restaurant."""
+    from bokharest_demo import _send_whatsapp
+    monkeypatch.delenv("BOKHAREST_WA_TOKEN", raising=False)
+    monkeypatch.delenv("BOKHAREST_ALERT_PHONE", raising=False)
+    assert _send_whatsapp({"table_no": 5, "total_piasters": 100}, []) == "not_configured"
+    app = create_app(tmp_path / "isolated-demo.sqlite", admin_password="test-password",
+                     secret_key="x" * 50)
+    with TestClient(app) as client:
+        bad = client.post("/api/bokharest/quote",
+                          json={"items": [{"item_id": 999999, "quantity": 1}]})
+        assert bad.status_code == 409
+        quote = client.post("/api/bokharest/quote",
+                            json={"items": [{"item_id": 1, "quantity": 2}]})
+        assert quote.status_code == 200
+        q = quote.json()
+        assert q["subtotal_piasters"] == 11998
+        assert q["total_piasters"] > q["subtotal_piasters"]
+        assert q["checkout_enabled"] is False
+        payload = {"table_no": 5, "note": "من غير سكر",
+                   "idempotency_key": "test-bokharest-isolated-123",
+                   "items": [{"item_id": 1, "quantity": 2}],
+                   "expected_total_piasters": q["total_piasters"]}
+        wrong = client.post("/api/bokharest/demo-orders",
+                            json={**payload, "expected_total_piasters": 1})
+        assert wrong.status_code == 409
+        created = client.post("/api/bokharest/demo-orders", json=payload)
+        assert created.status_code == 201, created.text
+        data = created.json()
+        assert data["status"] == "demo"
+        assert data["reference"].startswith("BKH-TEST-")
+        assert data["alert_status"] == "not_configured"
+        assert data["total_piasters"] == q["total_piasters"]
+        repeated = client.post("/api/bokharest/demo-orders", json=payload)
+        assert repeated.status_code == 201
+        assert repeated.json()["reference"] == data["reference"]
+        assert client.post("/api/bokharest/orders", json=payload).status_code == 404
+        assert client.get("/admin/bokharest-demo", follow_redirects=False).status_code == 303
+        import sqlite3
+        with sqlite3.connect(tmp_path / "isolated-demo.sqlite") as db:
+            assert db.execute("SELECT COUNT(*) FROM bokharest_demo_orders").fetchone()[0] == 1
+            row = db.execute("SELECT table_no,note FROM bokharest_demo_orders").fetchone()
+            assert row == (5, "من غير سكر")
+            assert db.execute("SELECT COUNT(*) FROM bokharest_demo_lines").fetchone()[0] == 1
+            assert db.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 0
+
+
+def test_bokharest_demo_cart_files_and_no_phone_leak():
+    html = (BASE_DIR / "templates" / "bokharest.html").read_text(encoding="utf-8")
+    js = (BASE_DIR / "static" / "bokharest_cart.js").read_text(encoding="utf-8")
+    css = (BASE_DIR / "static" / "bokharest.css").read_text(encoding="utf-8")
+    backend = (BASE_DIR / "bokharest_demo.py").read_text(encoding="utf-8")
+    assert "/static/bokharest_cart.js?v=1" in html
+    assert 'id="demoTable"' in html and 'id="demoSubmit"' in html
+    assert ".demo-cart-panel" in css
+    assert "/api/bokharest/quote" in js and "/api/bokharest/demo-orders" in js
+    assert "BOKHAREST_ALERT_PHONE" in backend
+    assert "_send_whatsapp" in backend
+    assert "BOKHAREST_WA_TOKEN" in backend
+    assert "01030954545" not in html + js + backend
+    assert "https://wa.me/" not in html + js  # never disclose the private recipient in frontend

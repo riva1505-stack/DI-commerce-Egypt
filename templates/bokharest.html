@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#171019">
-<meta name="description" content="منيو كافيه بوخاريست — معاينة رقمية على DI Commerce Egypt">
+<meta name="description" content="منيو كافيه بوخاريست وسلة طلبات تجريبية برقم الترابيزة — DI Commerce Egypt">
 <title>كافيه بوخاريست | DI Commerce Egypt</title>
 <link rel="icon" href="/static/images/favicon.ico">
-<link rel="stylesheet" href="/static/bokharest.css?v=2">
-<script src="/static/bokharest.js?v=1" defer></script>
+<link rel="stylesheet" href="/static/bokharest.css?v=3">
+<script src="/static/bokharest.js?v=2" defer></script>
+<script src="/static/bokharest_cart.js?v=1" defer></script>
 </head>
 <body>
 <div class="wrap">
@@ -29,9 +30,31 @@
     <div class="categories" id="categories" role="group" aria-label="أقسام المنيو"></div>
     <div class="menu-grid" id="menuGrid" aria-live="polite"><div class="loading">جارٍ تحميل القائمة...</div></div>
   </section>
-  <section class="legal"><h2 data-translate="important">مهم قبل الطلب</h2><p data-translate="legal">هذه الصفحة معاينة للمنيو، وليست قناة لطلب الطعام. الصور والأسعار من صفحات قديمة محتملة وتحتاج اعتماد المطعم. للمكونات والحساسية اسأل موظف المطعم مباشرة.</p></section>
+  <section class="legal"><h2 data-translate="important">مهم قبل الطلب</h2><p data-translate="legal">هذه الصفحة للاطلاع على المنيو وتجربة الطلبات فقط؛ لن يصل أي طلب حقيقي إلى المطعم. الصور والأسعار من صفحات قديمة محتملة وتحتاج اعتماد المطعم. للمكونات والحساسية اسأل موظف المطعم مباشرة.</p></section>
 </main>
 <footer><span>© DI Commerce Egypt · Café Bokharest</span><a href="/" data-translate="back">العودة للمشروع الرئيسي ←</a></footer>
 </div>
+
+<button type="button" id="openDemoCart" class="demo-cart-toggle" aria-label="افتح سلة الطلب التجريبي">
+  🛒 <span data-translate="testCart">سلة التجربة</span> <b id="demoCartBadge">0</b>
+</button>
+<div id="demoCartOverlay" class="demo-cart-overlay" hidden></div>
+<aside id="demoCartPanel" class="demo-cart-panel" role="dialog" aria-label="سلة بوخاريست التجريبية" aria-modal="true" hidden>
+  <div class="demo-cart-head">
+    <div><p class="overline">BOKHAREST · TEST ONLY</p><h2 data-translate="testCart">سلة التجربة</h2></div>
+    <button type="button" id="closeDemoCart" class="demo-close" aria-label="إغلاق السلة">×</button>
+  </div>
+  <p class="demo-disclaimer" data-translate="testOnly">⚠️ تجربة داخلية فقط: لن يُرسل طلب للمطعم الحقيقي، والأسعار تقديرية.</p>
+  <div id="demoCartLines" class="demo-cart-lines"></div>
+  <div id="demoCartTotals" class="demo-cart-totals" aria-live="polite"></div>
+  <div class="demo-cart-form">
+    <label for="demoTable" data-translate="tableNo">رقم الترابيزة</label>
+    <input id="demoTable" type="number" inputmode="numeric" min="1" max="500" required placeholder="مثلاً 5">
+    <label for="demoNote" data-translate="orderNote">ملاحظة (اختياري)</label>
+    <textarea id="demoNote" maxlength="250" rows="2"></textarea>
+    <button type="button" id="demoSubmit" class="demo-submit" data-translate="sendDemo">تأكيد الطلب التجريبي</button>
+    <p id="demoCartMessage" class="demo-message" role="status" aria-live="polite"></p>
+  </div>
+</aside>
 </body>
 </html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><title>طلبات بوخاريست التجريبية | DI Commerce Egypt</title>
+<link rel="stylesheet" href="/static/bokharest.css?v=3">
+<style>
+body{min-height:100vh}.admin-wrap{max-width:1100px;padding:25px clamp(14px,4vw,40px);margin:auto}
+.admin-head{display:flex;justify-content:space-between;flex-wrap:wrap;align-items:center;gap:14px}
+.admin-head a{color:#ffcd92;text-decoration:underline}
+.admin-title{font-size:clamp(26px,4vw,38px);margin:8px 0 2px}
+.admin-hint{background:#2a1d2b;border:1px solid #b78382;border-radius:14px;padding:16px;margin:20px 0}
+.admin-list{display:grid;gap:17px}.admin-card{border:1px solid #9a6279;background:#271a2b;border-radius:17px;padding:20px}
+.admin-meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.admin-ref{font-weight:900;font-size:18px;color:#ffd099}.admin-tag{border:1px solid #ad7c9a;padding:5px 12px;border-radius:99px;font-size:12px}
+.admin-list ul{padding-inline-start:24px}.admin-total{font-size:20px;color:#ffd099;font-weight:900}
+.admin-update{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.admin-update button,.admin-update select{padding:10px;border-radius:9px;border:1px solid #c39394;background:#332036;color:#fff;font-size:15px}
+.admin-update button{background:#e8b079;color:#20111c;font-weight:900;cursor:pointer}
+.admin-note{overflow-wrap:anywhere}.admin-empty{text-align:center;padding:40px}
+</style></head>
+<body><div class="admin-wrap">
+<header class="admin-head"><div><p class="overline">DI COMMERCE EGYPT · PRIVATE TEST</p>
+<h1 class="admin-title">طلبات بوخاريست التجريبية</h1>
+<p>صفحة خاصة بمسؤول الموقع، وليست لوحة المطعم الحقيقي.</p></div>
+<nav><a href="/admin">لوحة الإدارة الرئيسية</a> · <a href="/bokharest">المنيو</a></nav></header>
+<div class="admin-hint" role="note">
+<strong>تجربة فقط — ممنوع تنفيذ أي طلب في المطعم.</strong><br>
+حالة WhatsApp Cloud API:
+{% if whatsapp_ready %}إعدادات الربط موجودة، لكن وصول الرسائل يحتاج التأكد من حالة مزود واتساب.{% else %}غير متصل؛ الطلبات محفوظة هنا فقط ولا يتم إرسال رسالة تلقائية.{% endif %}
+</div>
+<section class="admin-list">
+{% for order in orders %}
+<article class="admin-card">
+<div class="admin-meta"><div><span class="admin-ref">{{ order.reference }}</span>
+<p>ترابيزة رقم <strong>{{ order.table_no }}</strong> · {{ order.created_at }}</p></div>
+<div><span class="admin-tag">{{ order.status }}</span> · <span class="admin-tag">واتساب: {{ order.alert_status }}</span></div></div>
+<ul>{% for line in order.lines %}<li>{{ line.name_ar }} × {{ line.quantity }} — {{ "%.2f"|format(line.line_total_piasters/100) }} ج.م</li>{% endfor %}</ul>
+{% if order.note %}<p class="admin-note"><strong>ملاحظات:</strong> {{ order.note }}</p>{% endif %}
+<p>الأصناف: {{ "%.2f"|format(order.subtotal_piasters/100) }} ج.م ·
+الخدمة التقديرية: {{ "%.2f"|format(order.service_piasters/100) }} ج.م ·
+الضريبة التقديرية: {{ "%.2f"|format(order.vat_piasters/100) }} ج.م</p>
+<p class="admin-total">الإجمالي التقديري: {{ "%.2f"|format(order.total_piasters/100) }} ج.م</p>
+<form class="admin-update" method="post" action="/admin/bokharest-demo/{{ order.id }}/status">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<label for="state-{{ order.id }}">حالة المراجعة</label>
+<select id="state-{{ order.id }}" name="status">
+<option value="demo" {% if order.status=='demo' %}selected{% endif %}>طلب تجريبي جديد</option>
+<option value="reviewed" {% if order.status=='reviewed' %}selected{% endif %}>تمت المراجعة</option>
+<option value="archived" {% if order.status=='archived' %}selected{% endif %}>مؤرشف</option>
+</select><button type="submit">حفظ</button></form>
+</article>
+{% else %}
+<p class="admin-empty">لسه مفيش طلبات تجريبية. جرّبي تضيفي أصناف من المنيو وتؤكدي الطلب برقم ترابيزة.</p>
+{% endfor %}
+</section>
+</div></body></html>

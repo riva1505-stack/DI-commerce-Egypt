@@ -4,17 +4,17 @@
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const i18n = {
     ar: {
-      demo:"معاينة تجريبية",greeting:"أهلاً بيك في",intro:"تصفّح المشروبات والأكلات من صور المنيو المرسلة، واختار اللي يناسبك.",
+      demo:"تجربة طلبات بدون تنفيذ",greeting:"أهلاً بيك في",intro:"اختاري من المنيو، جرّبي السلة، وأكدي طلب تجريبي برقم الترابيزة — بدون إرسال طلب حقيقي.",
       menu:"المنيو",search:"ابحث عن صنف...",all:"كل الأقسام",items:"صنف",noItems:"لا توجد أصناف تطابق البحث.",
       important:"مهم قبل الطلب",legal:"هذه الصفحة معاينة للمنيو، وليست قناة لطلب الطعام. الأسعار من الصور المرسلة وقد تكون قديمة، وتحتاج تأكيد المطعم. للمكونات والحساسية اسأل موظف المطعم مباشرة.",
-      back:"العودة للمشروع الرئيسي ←",notice:"الأسعار من صور المنيو المرسلة وتحتاج تأكيد المطعم؛ تنص الصور على رسم خدمة 12% وضريبة قيمة مضافة 14%. هذه معاينة ولا تستقبل طلبات.",
+      back:"العودة للمشروع الرئيسي ←",testCart:"سلة التجربة",testOnly:"⚠️ تجربة داخلية: لن يُرسل طلب للمطعم الحقيقي، والأسعار تقديرية.",tableNo:"رقم الترابيزة",orderNote:"ملاحظة (اختياري)",sendDemo:"تأكيد الطلب التجريبي",notice:"الأسعار من صور المنيو المرسلة وتحتاج تأكيد المطعم؛ تنص الصور على رسم خدمة 12% وضريبة قيمة مضافة 14%. الطلبات هنا تجريبية فقط ولا تصل للمطعم.",
       error:"تعذّر تحميل المنيو حاليًا.",currency:"ج.م",preview:"معاينة",subHot:"ساخن",subCold:"بارد",subAvocado:"أفوكادو",subYogurt:"زبادي"
     },
     en: {
-      demo:"Preview only",greeting:"Welcome to",intro:"Explore the drinks and dishes from the supplied menu photos.",
+      demo:"Test orders only",greeting:"Welcome to",intro:"Browse the menu and test ordering by table number. No real restaurant orders are placed.",
       menu:"Menu",search:"Search items...",all:"All categories",items:"items",noItems:"No items match this search.",
       important:"Before ordering",legal:"This is a read-only menu preview, not an ordering service. Prices were transcribed from supplied photos and may be outdated; confirm with the restaurant. Ask staff about ingredients and allergies.",
-      back:"Back to DI Commerce →",notice:"Prices are from supplied photos and require restaurant confirmation. The images state 12% service and 14% VAT. This preview does not accept orders.",
+      back:"Back to DI Commerce →",testCart:"Test cart",testOnly:"⚠️ Demo only: no order will reach the restaurant; prices are estimates.",tableNo:"Table number",orderNote:"Note (optional)",sendDemo:"Place test order",notice:"Prices are from supplied photos and require restaurant confirmation. The images state 12% service and 14% VAT. Test orders never reach the restaurant.",
       error:"Unable to load the menu.",currency:"EGP",preview:"Preview",subHot:"Hot",subCold:"Cold",subAvocado:"Avocado",subYogurt:"Yogurt"
     }
   };

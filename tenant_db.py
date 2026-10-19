@@ -48,4 +48,31 @@ def bootstrap(path):
           price_confirmed INTEGER NOT NULL DEFAULT 0,
           UNIQUE(tenant_id,id)
         );
+        CREATE TABLE IF NOT EXISTS di_orders (
+          id INTEGER PRIMARY KEY,
+          tenant_id INTEGER NOT NULL REFERENCES di_tenants(id),
+          reference TEXT NOT NULL,
+          idempotency_key TEXT NOT NULL,
+          tracking_hash TEXT NOT NULL,
+          table_no INTEGER NOT NULL CHECK(table_no BETWEEN 1 AND 500),
+          total_piasters INTEGER NOT NULL CHECK(total_piasters >= 0),
+          status TEXT NOT NULL DEFAULT 'new',
+          created_at INTEGER NOT NULL,
+          UNIQUE(tenant_id,reference),
+          UNIQUE(tenant_id,idempotency_key),
+          UNIQUE(tenant_id,id)
+        );
+        CREATE TABLE IF NOT EXISTS di_order_lines (
+          id INTEGER PRIMARY KEY,
+          tenant_id INTEGER NOT NULL,
+          order_id INTEGER NOT NULL,
+          item_id INTEGER NOT NULL,
+          name_snapshot TEXT NOT NULL,
+          unit_price_piasters INTEGER NOT NULL,
+          quantity INTEGER NOT NULL,
+          FOREIGN KEY(tenant_id,order_id) REFERENCES di_orders(tenant_id,id),
+          FOREIGN KEY(tenant_id,item_id) REFERENCES di_menu_items(tenant_id,id)
+        );
+        CREATE INDEX IF NOT EXISTS di_items_tenant ON di_menu_items(tenant_id,available);
+        CREATE INDEX IF NOT EXISTS di_orders_tenant ON di_orders(tenant_id,id);
         """)

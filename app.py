@@ -1,4 +1,4 @@
-"""AI Commerce Egypt — single-restaurant pilot, FastAPI + SQLite.
+"""DI Commerce Egypt — single-restaurant pilot, FastAPI + SQLite.
 
 Run: python -m uvicorn app:app --reload
 Not a payment processor, POS integration, or hosted AI model.
@@ -235,7 +235,7 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
     parse_password_hash(password_hash)
     del admin_password, credential_material
     bootstrap(db_path)
-    app = FastAPI(title="AI Commerce Egypt – Restaurant Pilot", docs_url=None if production else "/api/docs")
+    app = FastAPI(title="DI Commerce Egypt – Restaurant Pilot", docs_url=None if production else "/api/docs")
     app.state.db_path = db_path
     auth = AdminAuth(db_path, password_hash, credential_tag)
     app.state.serializer = URLSafeTimedSerializer(secret_key, salt="ace-session-v1")

@@ -48,7 +48,7 @@ def test_cart_quote_demo_idempotency_and_isolation(tmp_path):
             bad_table["idempotency_key"] = "test-" + secrets.token_hex(20)
             bad_table["table_no"] = 0
             assert client.post("/api/bokharest/demo-orders", json=bad_table).status_code == 422
-            assert client.get("/admin/bokharest-demo").status_code == 303
+            assert client.get("/admin/bokharest-demo", follow_redirects=False).status_code == 303
             assert client.get("/static/bokharest_cart.js").status_code == 200
     with sqlite3.connect(db_path) as con:
         assert con.execute("select count(*) from bokharest_demo_orders").fetchone()[0] == 1

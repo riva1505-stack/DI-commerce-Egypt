@@ -159,3 +159,41 @@ body.demo-cart-open{overflow:hidden}
 .showcase-link:focus-visible{outline:3px solid #fff;outline-offset:3px}
 @media(max-width:680px){.showcase-banner{align-items:stretch;flex-direction:column}
 .showcase-link{width:100%}}
+
+
+/* Self-service Bokharest chat: readable, keyboard accessible, mobile friendly. */
+.logo.bokharest-mark{width:72px;height:72px;background:transparent;border-radius:0;box-shadow:none;overflow:visible;flex:0 0 72px}
+.bokharest-mark img{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 12px #0008)}
+.bokharest-assistant{margin:24px 0;padding:clamp(16px,3vw,27px);border:1px solid #d2a071;border-radius:22px;background:linear-gradient(140deg,#37243d,#1e1826);box-shadow:0 12px 40px #0004}
+.bokharest-assistant-head{display:flex;gap:20px;align-items:flex-start;justify-content:space-between}
+.bokharest-assistant h2{color:#ffdbab;font-size:clamp(21px,3vw,29px);margin:0}
+.bokharest-assistant-head p{color:#e6cbda;margin:6px 0 15px;font-size:14px}
+.bokharest-voice-toggle,.bokharest-chat-mic{border:1px solid #ae849f;border-radius:12px;background:#382941;color:#ffe0ed;padding:10px 13px;min-height:46px;cursor:pointer;font:inherit;font-size:13px}
+.bokharest-voice-toggle[aria-pressed=true]{background:#78517a;color:#fff}
+.bokharest-conversation{height:260px;max-height:360px;overflow-y:auto;overscroll-behavior:contain;background:#140e1b;border:1px solid #74556c;border-radius:15px;padding:13px;display:flex;flex-direction:column;gap:11px;scrollbar-gutter:stable}
+.bokharest-bubble{width:fit-content;max-width:min(86%,580px);border:1px solid #876781;border-radius:15px;padding:11px 14px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}
+.bokharest-bubble.from-bot{background:#2d2235;align-self:flex-start;color:#fff2de}
+.bokharest-bubble.from-customer{background:#594056;align-self:flex-end;color:#fff}
+.bokharest-message-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:9px;font-size:12px}
+.bokharest-message-actions button,.bokharest-message-actions a{background:#4d364d;border:1px solid #b18791;border-radius:8px;color:#ffe0b0;cursor:pointer;font:inherit;padding:5px 10px}
+.bokharest-prompts{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0}
+.bokharest-prompts button{background:#37293e;border:1px solid #927488;border-radius:999px;color:#ffe0d3;padding:9px 12px;cursor:pointer;font:inherit;font-size:12px}
+.bokharest-chat-form{display:flex;gap:8px;align-items:stretch}
+.bokharest-chat-form input{min-width:0;flex:1;font:inherit;font-size:16px;padding:11px 13px;border-radius:12px;background:#150f1c;color:white;border:1px solid #986f89}
+.bokharest-chat-submit{min-height:46px;background:linear-gradient(105deg,#f8d69b,#e9a2bc);border:0;border-radius:12px;color:#261522;padding:10px 19px;font:inherit;font-weight:900;cursor:pointer}
+.bokharest-chat-submit:disabled,.bokharest-chat-mic:disabled{opacity:.55;cursor:not-allowed}
+.bokharest-chat-status{color:#e8c7d0;font-size:12px;min-height:18px;margin:10px 0 5px}
+.bokharest-chat-note{display:block;color:#d4b3c7;font-size:11px}
+.bokharest-assistant button:focus-visible,.bokharest-assistant input:focus-visible,.bokharest-message-actions a:focus-visible{outline:3px solid #ffdd96;outline-offset:2px}
+@media(max-width:639px){
+  .logo.bokharest-mark{width:58px;height:58px;flex-basis:58px}
+  .bokharest-assistant{padding:16px;border-radius:17px}
+  .bokharest-assistant-head{flex-direction:column;gap:0}
+  .bokharest-voice-toggle{margin-bottom:12px}
+  .bokharest-conversation{height:270px;padding:10px}
+  .bokharest-bubble{max-width:94%;font-size:13px}
+  .bokharest-chat-form{flex-wrap:wrap}
+  .bokharest-chat-form input{flex:1 1 100%;min-height:48px}
+  .bokharest-chat-mic,.bokharest-chat-submit{flex:1 1 auto}
+}
+@media(prefers-reduced-motion:reduce){.bokharest-conversation{scroll-behavior:auto}}

@@ -146,3 +146,16 @@ body.demo-cart-open{overflow:hidden}
 @media(max-width:639px){.demo-cart-toggle{bottom:max(12px,env(safe-area-inset-bottom));font-size:13px;
   padding:11px 13px}.demo-cart-panel{border:0}.demo-line-title{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){.dish-add,.demo-cart-toggle{transition:none}}
+
+/* Sales showcase call-to-action; never implies restaurant-approved reservations. */
+.showcase-banner{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:24px 0;
+  padding:22px clamp(17px,3vw,27px);border:1px solid #d0a274;border-radius:18px;
+  background:linear-gradient(110deg,#3b253e,#251d31)}
+.showcase-banner strong{font-size:19px;color:#ffdcaa}
+.showcase-banner p{margin:5px 0 0;color:#e7d1d8;font-size:13px;max-width:600px}
+.showcase-link{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+  background:linear-gradient(120deg,#f8ce91,#e8a4c1);color:#20121c;border-radius:12px;
+  padding:12px 18px;font-weight:900;text-decoration:none;min-height:48px}
+.showcase-link:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@media(max-width:680px){.showcase-banner{align-items:stretch;flex-direction:column}
+.showcase-link{width:100%}}

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>الحجوزات التجريبية | DI Commerce Egypt</title>
+<style>
+body{background:#150f1c;color:#fff3e7;font:16px/1.65 system-ui,sans-serif;margin:0}
+main{max-width:1100px;margin:24px auto;padding:18px}a{color:#f2c58a}
+h1{font-size:clamp(25px,4vw,39px)}.notice{background:#382337;border:1px solid #b98696;border-radius:14px;padding:15px;margin-bottom:23px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:13px}
+.card{background:#271b30;border:1px solid #6f536f;border-radius:17px;padding:18px}
+.card strong{font-size:20px;color:#f9cb94}.card p{margin:8px 0}.muted{font-size:12px;color:#c6afc0}
+button{border:0;border-radius:10px;background:#e8c18e;padding:9px 14px;font:inherit;font-weight:700;cursor:pointer}
+</style></head>
+<body><main>
+<nav><a href="/admin/bokharest-demo">← طلبات بوخاريست</a> · <a href="/admin">الإدارة</a> · <a href="/bokharest/reserve">شاشة الحجز</a></nav>
+<h1>حجوزات بوخاريست التجريبية</h1>
+<p class="notice"><strong>تجربة فقط.</strong> الحجوزات هنا افتراضية ومنفصلة عن المطعم الحقيقي، ولا يُرسل أي تأكيد للضيوف. الطاولات المشغولة افتراضيًا لأغراض العرض قد لا تظهر ضمن السجلات أدناه.</p>
+<div class="grid">
+{% for b in bookings %}
+<article class="card">
+<strong>ترابيزة {{ b.table_no }} · {{ b.reference }}</strong>
+<p>{{ b.reservation_date }} · {{ b.reservation_time }} · {{ b.guests }} أفراد</p>
+<p>اسم العرض: {{ b.guest_name }}</p>
+<p class="muted">الحالة: {{ "تجريبي" if b.status == "demo" else "ملغى" }} · {{ b.created_at }}</p>
+{% if b.status == "demo" %}
+<form method="post" action="/admin/bokharest-reservations/{{ b.id }}/cancel">
+<input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit">إلغاء الحجز التجريبي</button>
+</form>
+{% endif %}
+</article>
+{% else %}
+<article class="card">لم تُسجل حجوزات بعد. افتحي شاشة الحجز وجربي اختيار ترابيزة.</article>
+{% endfor %}
+</div></main></body></html>

@@ -175,3 +175,9 @@ html[dir="ltr"] .sidebar{border-left:0;border-right:1px solid #d6a16758}
  .topbar>.top-actions{gap:5px}
  .pilot-label{padding:5px 7px;font-size:10px}
 }
+
+
+/* Use the complete supplied DI artwork across customer and admin views. */
+.brand-logo,.sidebar .brand-logo,.login-card .brand-logo{width:72px;height:72px;min-width:72px;flex:0 0 72px;background:transparent;border:0;box-shadow:none;border-radius:0;overflow:visible;isolation:auto}
+.brand-logo img,.sidebar .brand-logo img,.login-card .brand-logo img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;filter:drop-shadow(0 3px 8px #0007)}
+@media(max-width:700px){.brand-logo,.sidebar .brand-logo,.login-card .brand-logo{width:56px;height:56px;min-width:56px;flex-basis:56px}}

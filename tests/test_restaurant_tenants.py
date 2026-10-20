@@ -184,3 +184,25 @@ def test_legacy_data_unchanged_by_new_tenant_platform(tmp_path):
         assert client.get("/r/unknown").status_code == 404
         assert client.get("/admin/restaurants", follow_redirects=False).status_code == 303
         assert client.get("/api/menu").json() == old
+
+
+def test_tenant_demo_rate_limit_scoped_to_restaurant(tmp_path):
+    with client_for(tmp_path) as client:
+        platform = _admin_platform(client)
+        _make_tenant(client, platform, "cafe-rate-a", "كافيه أ", "Password-for-cafeA-789")
+        _make_tenant(client, platform, "cafe-rate-b", "كافيه ب", "Password-for-cafeB-789")
+        a = _tenant_login(client, "cafe-rate-a", "Password-for-cafeA-789")
+        b = _tenant_login(client, "cafe-rate-b", "Password-for-cafeB-789")
+        a_id = _dish(client, "cafe-rate-a", a, "ماء معدني")
+        b_id = _dish(client, "cafe-rate-b", b, "عصير برتقال")
+        for _ in range(10):
+            reply = client.post("/r/cafe-rate-a/api/orders",
+                                json={"table_no": 1, "items": [{"id": a_id, "quantity": 1}]})
+            assert reply.status_code == 200
+        blocked = client.post("/r/cafe-rate-a/api/orders",
+                              json={"table_no": 1, "items": [{"id": a_id, "quantity": 1}]})
+        assert blocked.status_code == 429
+        assert blocked.headers["retry-after"] == "60"
+        other = client.post("/r/cafe-rate-b/api/orders",
+                            json={"table_no": 1, "items": [{"id": b_id, "quantity": 1}]})
+        assert other.status_code == 200

@@ -142,7 +142,8 @@ def menu_reply(message: str, history: list[str] | None = None) -> dict:
         hits = []
     if hits:
         names = "، ".join(f'{x["name_ar"]} ({x["price_piasters"] / 100:.2f} ج.م)' for x in hits)
-        return {"text": f"أيوه، لقيت أصناف تناسب سؤالك في المنيو : {names}. دي الأسعار المعروضة في النسخة التجريبية ومحتاجة تأكيد من المطعم. تحبي تفاصيل صنف معين؟",
+        topic = "الدجاج" if any(w in q for w in ("دجاج", "فراخ", "تشيكن", "chicken")) else "سؤالك"
+        return {"text": f"أيوه، لقيت أصناف مرتبطة بـ{topic} في المنيو: {names}. دي الأسعار المعروضة في النسخة التجريبية ومحتاجة تأكيد من المطعم. تحبي تفاصيل صنف معين؟",
                 "items": [{"id": x["id"], "name": x["name_ar"], "price_piasters": x["price_piasters"]} for x in hits],
                 "mode": "catalogue-demo"}
     return {"text": "مش لاقي صنف مطابق لسؤالك في المنيو المسجل، ومش هخترع حاجة مش موجودة. ممكن تسأليني عن الدجاج، الساندويتشات، العصائر، أو تقولي «إيه المنيو؟».",

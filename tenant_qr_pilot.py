@@ -13,6 +13,8 @@ def qr_path(slug: str, table: int, table_count: int = 20) -> str:
 
 def qr_target(base_url: str, slug: str, table: int, table_count: int = 20) -> str:
     parsed = urlsplit(base_url)
-    if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment:
-        raise ValueError("HTTPS public domain required")
-    return base_url.rstrip("/") + qr_path(slug, table, table_count)
+    if (parsed.scheme != "https" or not parsed.hostname or parsed.username or
+            parsed.password or parsed.query or parsed.fragment or
+            parsed.path not in ("", "/") or parsed.port not in (None, 443)):
+        raise ValueError("A plain HTTPS public origin is required")
+    return f"https://{parsed.netloc}" + qr_path(slug, table, table_count)

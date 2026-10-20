@@ -28,8 +28,10 @@ from urllib.parse import urlsplit
 
 import qrcode
 
-from assistant_engine import ai_chat, guided_chat, has_allergy
+from assistant_engine import ai_chat, guided_chat, has_allergy, has_dietary_concern
 from bokharest_demo import install_bokharest_demo
+from bokharest_showcase import install_bokharest_showcase
+from restaurant_tenants import install_tenant_platform
 from auth_security import AdminAuth, PREVIEW_SECRET, SESSION_SECONDS, hash_password, parse_password_hash
 from voice_gateway import transcribe_audio, synthesize_speech
 from fastapi import FastAPI, HTTPException, Request
@@ -46,6 +48,18 @@ TEMPLATES = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 COOKIE_NAME = "ai_commerce_admin"
 ORDER_STATES = ("new", "accepted", "preparing", "ready", "completed", "cancelled")
 CATEGORIES = ("بيتزا", "برجر", "مقبلات", "مشروبات", "حلويات", "أخرى")
+
+
+def valid_category(value: str) -> bool:
+    """Allow user-created sections, not just initial sample categories."""
+    return bool(value and len(value) <= 50 and value == value.strip()
+                and all(ord(c) >= 32 and c not in '<>{}' for c in value)
+                and not value.isdigit())
+
+
+def categories_from(menu: list[dict[str, Any]]) -> list[str]:
+    return list(dict.fromkeys([*CATEGORIES, *(item['category'] for item in menu)]))
+
 
 
 def now_utc() -> str:
@@ -300,7 +314,8 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
     @app.get("/api/menu")
     def api_menu():
         with dbconn(db_path) as db:
-            return {"settings": settings_from(db), "items": menu_from(db), "categories": list(CATEGORIES)}
+            items = menu_from(db)
+            return {"settings": settings_from(db), "items": items, "categories": categories_from(items)}
 
     # Best-effort in-memory throttle for the pilot; a public deployment requires
     # centralised limits, provider spend caps, HTTPS and production monitoring.
@@ -399,7 +414,8 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         with dbconn(db_path) as db:
             items = menu_from(db)
         # Local food-safety redirection comes before any external provider call.
-        if has_allergy(messages):
+        if has_allergy(messages) or has_dietary_concern(messages):
+            # Keep disclosed health context away from external models; no clinical recommendations.
             return guided_chat(messages, items, language=payload.language, dialect=payload.dialect)
         key = os.environ.get("OPENAI_API_KEY", "").strip()
         if key:
@@ -561,7 +577,7 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
                      "total_piasters": db.execute("SELECT COALESCE(SUM(total_piasters),0) FROM orders WHERE status NOT IN ('cancelled')").fetchone()[0]}
         return TEMPLATES.TemplateResponse(request, "admin.html", {"items": items, "all_addons": all_addons,
             "orders": orders, "settings": settings, "stats": stats, "csrf": csrf_for(request),
-            "categories": CATEGORIES, "statuses": ORDER_STATES, "money": money, "base_url": public_base})
+            "categories": categories_from(items), "statuses": ORDER_STATES, "money": money, "base_url": public_base})
 
     @app.get("/admin/pulse")
     def admin_pulse(request: Request):
@@ -590,8 +606,8 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         verify_csrf(request, str(form.get("csrf", "")))
         name = str(form.get("name", "")).strip()[:90]
         desc = str(form.get("description", "")).strip()[:250]
-        category = str(form.get("category", ""))
-        if not name or category not in CATEGORIES:
+        category = (str(form.get("category_custom", "")).strip() or str(form.get("category", "")).strip())
+        if not name or not valid_category(category):
             raise HTTPException(status_code=422, detail="اسم الصنف أو القسم غير صحيح")
         try:
             price = amount_to_piasters(str(form.get("price", "")))
@@ -610,9 +626,9 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         form = await request.form()
         verify_csrf(request, str(form.get("csrf", "")))
         name = str(form.get("name", "")).strip()[:90]
-        category = str(form.get("category", ""))
+        category = (str(form.get("category_custom", "")).strip() or str(form.get("category", "")).strip())
         desc = str(form.get("description", "")).strip()[:250]
-        if not name or category not in CATEGORIES:
+        if not name or not valid_category(category):
             raise HTTPException(status_code=422, detail="بيانات الصنف غير صحيحة")
         try:
             price = amount_to_piasters(str(form.get("price", "")))
@@ -667,6 +683,9 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         return {"ok": True, "version": "1.0.0-restaurant-edition"}
 
     install_bokharest_demo(app, db_path, is_admin, verify_csrf, csrf_for, TEMPLATES)
+    install_bokharest_showcase(app, db_path, is_admin, verify_csrf, csrf_for, TEMPLATES)
+    install_tenant_platform(app, db_path, is_admin, verify_csrf, csrf_for,
+                            secret_key, production, TEMPLATES, auth.reserve_login_attempt)
     return app
 
 

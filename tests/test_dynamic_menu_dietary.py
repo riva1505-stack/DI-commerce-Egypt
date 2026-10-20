@@ -92,8 +92,8 @@ def test_health_disclosure_not_sent_to_external_ai(tmp_path, monkeypatch):
 
 def test_logo_mobile_brand_and_cache_bust(tmp_path):
     with new_client(tmp_path) as client:
-        assert "/static/brand.css?v=1.2" in client.get("/").text
-        assert "/static/brand.css?v=1.2" in client.get("/admin/login").text
+        assert "/static/brand.css?v=1.3" in client.get("/").text
+        assert "/static/brand.css?v=1.3" in client.get("/admin/login").text
         css = client.get("/static/brand.css").text
         assert "overflow:visible" in css
         assert "object-fit:contain" in css

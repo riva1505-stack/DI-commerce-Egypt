@@ -107,3 +107,41 @@ def test_booking_validation(tmp_path):
         payload["table_no"] = 5
         payload["date"] = "2020-01-01"
         assert client.post("/api/bokharest/demo-reservations", json=payload).status_code == 422
+
+
+def test_bokharest_social_replies_are_natural_and_do_not_fabricate_menu(tmp_path):
+    """Everyday Arabic/English chat should not be reported as a missing dish."""
+    greetings = {
+        "صباح الخير": ("صباح النور", "شو بتحب تطلب"),
+        "صباح النور": ("صباح النور", "شو بتحب تطلب"),
+        "مسا الخير": ("مساء النور", "شو حابب تطلب"),
+        "مساء الخير": ("مساء النور", "شو حابب تطلب"),
+        "كيفك": ("إنت كيفك", "شو بتحب تطلب"),
+        "صباح الخير كيفك": ("صباح النور", "شو بتحب تطلب"),
+        "أهلاً": ("أهلين", "شو حابب تطلب"),
+        "السلام عليكم": ("أهلين", "شو حابب تطلب"),
+        "بدي اطلب": ("تفضل", "شو بتحب تطلب"),
+        "شكراً": ("العفو", "بوخارست"),
+        "مع السلامة": ("مع السلامة", "بوخارست"),
+        "good morning": ("صباح النور", "بوخارست"),
+    }
+    with new_client(tmp_path) as client:
+        for phrase, expected_parts in greetings.items():
+            r = client.post("/api/bokharest/demo-chat", json={"message": phrase})
+            assert r.status_code == 200, (phrase, r.text)
+            data = r.json()
+            assert data["mode"] == "catalogue-demo"
+            assert data["items"] == []
+            assert "مش لاقي صنف" not in data["text"]
+            assert all(p in data["text"] for p in expected_parts), (phrase, data)
+
+        # Greeting and substantive question in one turn must still search the menu.
+        dish = client.post("/api/bokharest/demo-chat",
+                           json={"message": "صباح الخير عندكم دجاج؟"}).json()
+        assert dish["items"] and "دجاج" in dish["text"]
+        allergy = client.post("/api/bokharest/demo-chat",
+                              json={"message": "صباح الخير عندي حساسية مكسرات"}).json()
+        assert not allergy["items"] and "موظف" in allergy["text"]
+        booking = client.post("/api/bokharest/demo-chat",
+                              json={"message": "مساء الخير عايزة أحجز طاولة"}).json()
+        assert booking["link"] == "/bokharest/reserve"

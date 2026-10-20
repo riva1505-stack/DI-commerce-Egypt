@@ -150,3 +150,28 @@ html[dir="ltr"] .sidebar{border-left:0;border-right:1px solid #d6a16758}
 .bokharest-spotlight p{font-size:13px;line-height:1.5;color:#efdbdf;margin:7px 0 0}
 .bokharest-spotlight .btn{flex-shrink:0;text-decoration:none;white-space:nowrap}
 @media(max-width:550px){.bokharest-spotlight{padding:16px;display:block}.bokharest-spotlight .btn{margin-top:14px;display:inline-flex;font-size:13px}.bokharest-spotlight strong{font-size:18px}}
+
+
+/* Brand visibility: keep DI badge and full wordmark legible at phone widths. */
+.brand,.sidebar .brand,.login-card .brand{display:inline-flex;align-items:center;gap:10px;max-width:100%;min-width:0;flex-shrink:1;white-space:normal}
+.brand-logo,.sidebar .brand-logo{flex:0 0 56px;width:56px;height:56px;min-width:56px;overflow:visible;border-radius:16px;isolation:isolate}
+.brand-logo .di-monogram{width:100%;height:100%;border-radius:inherit;line-height:1;letter-spacing:0;font-size:22px;padding:5px;overflow:visible;text-shadow:0 0 9px rgba(255,68,194,.37)}
+.brand-logo img{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
+.brand-title{display:flex;flex-direction:column;flex:0 1 auto;min-width:0;overflow-wrap:normal;word-break:normal;line-height:1.19}
+.brand-title>span{display:block;white-space:normal}
+.brand-title small{font-size:clamp(7px,.72vw,9px);letter-spacing:.6px;line-height:1.32;white-space:normal;overflow-wrap:break-word}
+.topbar,.top-actions{min-width:0}
+@media(max-width:700px){
+ .topbar{gap:9px;align-items:center;flex-wrap:wrap}
+ .topbar>.brand{flex:1 1 170px}
+ .topbar>.top-actions{flex:1 1 auto;justify-content:flex-end;flex-wrap:wrap;gap:7px}
+ .brand-logo,.sidebar .brand-logo{width:43px;height:43px;min-width:43px;flex-basis:43px;border-radius:12px}
+ .brand-logo .di-monogram{font-size:17px;padding:3px}
+ .brand-title{font-size:clamp(12px,3.6vw,17px);line-height:1.15}
+ .brand-title small{font-size:7px;letter-spacing:0}
+}
+@media(max-width:390px){
+ .topbar>.brand{flex-basis:155px}
+ .topbar>.top-actions{gap:5px}
+ .pilot-label{padding:5px 7px;font-size:10px}
+}

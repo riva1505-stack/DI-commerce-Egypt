@@ -1,4 +1,4 @@
-/* Bokharest's self-service, catalogue-grounded demo chat. No paid AI API. */
+/* Bokharest menu assistant: optional server-side Gemini AI, safe local fallback. */
 (() => {
   "use strict";
   const $ = id => document.getElementById(id);
@@ -13,7 +13,9 @@
       greeting:"أهلًا بيك في بوخاريست! 👋 عايز تعرف الموجود في المنيو، أو سعر صنف معين؟",
       placeholder:"مثلاً: عندكم فراخ؟ والسعر كام؟", send:"إرسال", listenOn:"🔊 قراءة الردود: شغالة",
       listenOff:"🔈 قراءة الردود: مقفولة", mic:"🎙️ اتكلمي", micBusy:"🎙️ بسمعك...",
-      ready:"المساعد التجريبي يرد تلقائيًا من المنيو المسجل. مفيش حجز أو طلب حقيقي بيتم من الشات.",
+      ready:"مساعد المنيو التجريبي؛ لم يتم تفعيل نموذج AI خارجي بعد.",
+      aiTrial:"محادثة Gemini AI تجريبية. الأسعار والحجوزات للعرض فقط.",
+      fallback:"الحصة المجانية أو الخدمة غير متاحة الآن؛ المساعد المحلي يرد من المنيو.",
       wait:"بيدور في منيو بوخاريست...", fail:"معلش، الرد مش متاح دلوقتي. جربي السؤال تاني.",
       limited:"الميكروفون مش متاح في المتصفح ده. اكتبي السؤال أو جرّبي متصفح بيدعم تحويل الكلام لنص.",
       voiceLimited:"ميزة قراءة الردود بصوت مش متاحة في المتصفح ده. تقدري تقري الرد هنا.",
@@ -27,7 +29,9 @@
       greeting:"Welcome to Bokharest! 👋 Ask about anything listed on the menu or an item's price.",
       placeholder:"For example: Do you have chicken?",send:"Send",listenOn:"🔊 Read replies: on",
       listenOff:"🔈 Read replies: off",mic:"🎙️ Speak",micBusy:"🎙️ Listening...",
-      ready:"Demo assistant: replies are grounded in the supplied menu. No real bookings or orders are made here.",
+      ready:"Local demo menu assistant; external AI is not enabled yet.",
+      aiTrial:"Gemini AI trial. Prices and reservations are demonstration-only.",
+      fallback:"AI trial unavailable or quota reached; using local catalogue replies.",
       wait:"Checking the Bokharest menu...",fail:"Sorry, I couldn't get an answer right now. Please try again.",
       limited:"Voice input isn't supported in this browser. Type your question instead.",
       voiceLimited:"Spoken replies aren't supported in this browser. You can read the response here.",
@@ -117,7 +121,7 @@
     const wait = addMessage(tr("wait"));
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+      const timeout = setTimeout(() => controller.abort(), 18000);
       let response;
       try {
         response = await fetch("/api/bokharest/demo-chat", {
@@ -132,7 +136,8 @@
       addMessage(reply, false, data.link);
       latest = reply;
       history.push(message, reply); history = history.slice(-6);
-      status.textContent = tr("ready");
+      status.textContent = data.mode === "gemini-ai-demo" ? tr("aiTrial")
+        : data.ai_fallback ? tr("fallback") : tr("ready");
       if (autoRead || readAfterMic) speak(reply);
       readAfterMic = false;
     } catch (_) {

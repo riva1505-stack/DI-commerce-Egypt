@@ -52,7 +52,7 @@ def test_bokharest_responsive_layout_keeps_menu_accessible():
     css = (BASE_DIR / "static" / "bokharest.css").read_text(encoding="utf-8")
     assert 'name="viewport"' in html
     assert "width=device-width" in html
-    assert "/static/bokharest.css?v=4" in html
+    assert "/static/bokharest.css?v=5" in html
     assert 'id="search"' in html and 'id="categories"' in html
     assert "@media (max-width:639px)" in css
     assert "@media (max-width:1023px)" in css

@@ -16,7 +16,7 @@
 .tables{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 20px}.table{border:1px solid #598573;border-radius:16px;min-height:87px;background:linear-gradient(135deg,#234135,#20332f);color:#edfff5;cursor:pointer;font:inherit;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.table strong{font-size:20px}.table small{font-size:11px}.table[aria-pressed="true"]{outline:3px solid var(--gold);outline-offset:2px;background:#57503d}.table:disabled{cursor:not-allowed;opacity:.62;background:#35232f;border-color:#775665}.table.too-small{background:#302b37;border-color:#555161}.table:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}.primary{border:none;border-radius:13px;background:linear-gradient(120deg,#ffe0ab,#daa0c6);color:#281723;min-height:48px;padding:11px 18px;font:inherit;font-weight:900;cursor:pointer}.primary:disabled{filter:grayscale(1);cursor:not-allowed;opacity:.5}
 .status{min-height:32px;margin-top:14px;font-size:14px;color:#ffe2be;overflow-wrap:anywhere}.chat-window{background:#100d18;border:1px solid #604765;border-radius:17px;padding:12px;min-height:278px;max-height:410px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}.bubble{max-width:92%;padding:11px 14px;border-radius:16px;border:1px solid #6f5a70;align-self:flex-start;background:#302538;white-space:pre-wrap}.bubble.user{align-self:flex-end;background:#64304e;border-color:#cc86b1}.bubble small{display:block;color:#d8bdbf;margin-top:7px;font-size:12px}
-.suggestions{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0}.suggestions button{border:1px solid #a17a8b;border-radius:99px;padding:8px 11px;background:#35283b;color:#ffeacb;cursor:pointer;font:inherit;font-size:12px}.chat-form{display:flex;gap:8px}.chat-form .primary{min-width:85px}
+.suggestions{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0}.suggestions button{border:1px solid #a17a8b;border-radius:99px;padding:8px 11px;background:#35283b;color:#ffeacb;cursor:pointer;font:inherit;font-size:12px}.chat-form{display:flex;gap:8px}.chat-form .primary{min-width:85px}.voice-btn{border:1px solid #a17a8b;border-radius:13px;min-height:46px;background:#34243b;color:#fff1df;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer}.voice-btn:disabled{opacity:.55;cursor:not-allowed}.voice-btn[aria-pressed="true"]{border-color:var(--gold);background:#584360}.voice-hint{margin:10px 0 0;color:var(--muted);font-size:13px}
 .footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-top:28px;color:#b7a6b9;font-size:13px}
 @media(max-width:890px){.grid{grid-template-columns:1fr}.hero{padding-top:30px}}@media(max-width:540px){.form{grid-template-columns:1fr 1fr}.form .field:first-child{grid-column:1/-1}.tables{grid-template-columns:repeat(3,minmax(0,1fr))}.row{grid-template-columns:1fr}.chat-form{flex-wrap:wrap}.chat-form .chat-input{flex:1 1 160px}}
 </style>
@@ -43,7 +43,8 @@
 <h2 id="assistant-heading">✨ مساعد المنيو</h2><p class="small">اسأليه بشكل طبيعي عن الموجود في بوخاريست: الدجاج، العصائر، الأسعار أو الحجز.</p>
 <div class="chat-window" id="chatMessages" role="log" aria-live="polite"><div class="bubble">أهلاً بيكي! 👋 أنا مساعد بوخاريست التجريبي. تحبي تعرفي عندنا إيه في المنيو، ولا تدوري على أكلة معينة؟<small>الردود من المنيو المسجل، بدون رسوم API.</small></div></div>
 <div class="suggestions" id="suggestions"><button type="button" data-prompt="عندكم دجاج؟">🍗 عندكم دجاج؟</button><button type="button" data-prompt="إيه المنيو النهاردة؟">📖 إيه المنيو؟</button><button type="button" data-prompt="عندكم عصائر؟">🥤 عصائر</button><button type="button" data-prompt="عايزة أحجز ترابيزة">🪑 حجز</button></div>
-<form id="chatForm" class="chat-form"><input id="chatInput" class="chat-input" maxlength="300" autocomplete="off" placeholder="اسألي عن أي صنف..." required aria-label="رسالة المساعد"><button class="primary" id="sendChat" type="submit">إرسال</button></form>
+<form id="chatForm" class="chat-form"><input id="chatInput" class="chat-input" maxlength="300" autocomplete="off" placeholder="اسألي عن أي صنف..." required aria-label="رسالة المساعد"><button class="primary" id="sendChat" type="submit">إرسال</button><button class="voice-btn" id="micChat" type="button" aria-label="اسألي المساعد بصوتك" aria-pressed="false">🎙️ اتكلمي</button><button class="voice-btn" id="listenChat" type="button" aria-label="اسمعي آخر رد من المساعد" disabled>🔊 اسمعي الرد</button></form>
+<p id="voiceStatus" class="voice-hint" role="status" aria-live="polite">الميكروفون يحتاج إذنك. ميزة الصوت تستخدم خدمات المتصفح والجهاز، وقد يُعالج الصوت لدى مزود المتصفح؛ الموقع لا يحتفظ بالتسجيلات.</p>
 <p class="small" style="margin-top:14px">لا يؤكد الحساسية الغذائية ولا توافر الأصناف بالمطعم الحقيقي. للتأكد من المكونات اسألي الموظف.</p>
 </section>
 </div>
@@ -106,6 +107,46 @@ if(extra){const s=document.createElement("small");s.textContent=extra;el.append(
 $("chatMessages").append(el);$("chatMessages").scrollTop=$("chatMessages").scrollHeight;
 }
 let busy=false;
+const micChat=$("micChat"),listenChat=$("listenChat"),voiceStatus=$("voiceStatus");
+const SpeechRecognitionCtor=window.SpeechRecognition||window.webkitSpeechRecognition;
+const canSpeak=("speechSynthesis" in window)&&("SpeechSynthesisUtterance" in window);
+let lastAnswer="",speakAfterMicrophone=false;
+function say(text){
+if(!canSpeak){voiceStatus.textContent="المتصفح ده لا يدعم قراءة الرد بصوت مسموع.";return;}
+try{
+window.speechSynthesis.cancel();
+const utterance=new SpeechSynthesisUtterance(String(text).slice(0,1500));
+utterance.lang="ar-EG";utterance.rate=.94;
+const voice=window.speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith("ar"));
+if(voice)utterance.voice=voice;
+utterance.onerror=()=>{voiceStatus.textContent="الصوت ما اشتغلش على الجهاز. جربي الضغط على «اسمعي الرد» مرة تانية أو افتحي Safari."};
+window.speechSynthesis.speak(utterance);
+}catch(e){voiceStatus.textContent="تعذر تشغيل الصوت. جربي من متصفح Safari مباشرة.";}
+}
+listenChat.disabled=!canSpeak;
+if(canSpeak)listenChat.addEventListener("click",()=>{if(lastAnswer)say(lastAnswer);});
+if(!SpeechRecognitionCtor){
+micChat.disabled=true;micChat.title="المتصفح الحالي لا يدعم تحويل الكلام إلى نص";
+voiceStatus.textContent="تقدري تسمعي الرد بالضغط على 🔊 بعد إرسال رسالة، لكن الميكروفون غير مدعوم في المتصفح ده. جرّبي Safari أو اكتبي سؤالك.";
+}else{
+const rec=new SpeechRecognitionCtor();
+rec.lang="ar-EG";rec.interimResults=false;rec.maxAlternatives=1;
+rec.onstart=()=>{micChat.setAttribute("aria-pressed","true");micChat.textContent="🎙️ بسمعك...";voiceStatus.textContent="اتكلمي دلوقتي. المتصفح ممكن يطلب إذن الميكروفون.";};
+rec.onresult=event=>{
+const spoken=event.results&&event.results[0]&&event.results[0][0]&&event.results[0][0].transcript;
+if(spoken){$("chatInput").value=spoken;speakAfterMicrophone=true;ask(spoken);}
+else voiceStatus.textContent="مسمعتش السؤال بوضوح، جرّبي مرة تانية.";
+};
+rec.onerror=event=>{
+speakAfterMicrophone=false;
+voiceStatus.textContent=event.error==="not-allowed"?"الميكروفون مرفوض. اسمحي باستخدامه من إعدادات المتصفح.":"تعذر سماع الصوت. جربي مرة تانية أو اكتبي السؤال.";
+};
+rec.onend=()=>{micChat.setAttribute("aria-pressed","false");micChat.textContent="🎙️ اتكلمي";};
+micChat.addEventListener("click",()=>{
+if(busy){voiceStatus.textContent="استني رد المساعد الأول.";return;}
+try{rec.start();}catch(e){voiceStatus.textContent="الميكروفون مش متاح دلوقتي. جربي فتح الصفحة في Safari.";}}
+);
+}
 async function ask(raw){
 const message=String(raw||"").trim();if(!message||busy)return;
 bubble(message,true);$("chatInput").value="";busy=true;$("sendChat").disabled=true;
@@ -115,8 +156,10 @@ try{
 const r=await fetch("/api/bokharest/demo-chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message,history})});
 const data=await r.json();if(!r.ok)throw Error(data.detail||"حدث خطأ");
 pending.remove();bubble(data.text,false,"إجابات مبنية على بيانات تجريبية · من غير AI مدفوع");
+lastAnswer=data.text;listenChat.disabled=!canSpeak;
+if(speakAfterMicrophone){speakAfterMicrophone=false;say(lastAnswer);}
 history.push(message);history=history.slice(-6);
-}catch(e){pending.remove();bubble("معلش، حصلت مشكلة في تجربة المساعد: "+e.message);}
+}catch(e){speakAfterMicrophone=false;pending.remove();bubble("معلش، حصلت مشكلة في تجربة المساعد: "+e.message);}
 finally{busy=false;$("sendChat").disabled=false;$("chatInput").focus();}
 }
 $("chatForm").addEventListener("submit",e=>{e.preventDefault();ask($("chatInput").value)});

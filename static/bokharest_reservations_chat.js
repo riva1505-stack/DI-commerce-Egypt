@@ -53,7 +53,7 @@
       bubble(question, true);
       const pending = bubble("بشوف المنيو وأرد عليكي...");
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 12000);
+      const timer = setTimeout(() => controller.abort(), 18000);
       try {
         const response = await fetch("/api/bokharest/demo-chat", {
           method: "POST",
@@ -74,7 +74,11 @@
         history = history.slice(-6);
         latest = answer;
         if (replay) replay.disabled = !canSpeak;
-        if (info) info.textContent = "تم الرد. تقدري تسألي سؤال متابعة.";
+        if (info) info.textContent = data.mode === "gemini-ai-demo"
+          ? "رد AI تجريبي عبر Gemini. الأسعار والحجوزات للعرض فقط."
+          : data.ai_fallback
+          ? "رد مساعد المنيو المحلي؛ خدمة الـAI المجانية مش متاحة حاليًا."
+          : "رد مساعد المنيو المحلي. نموذج AI خارجي غير مفعّل.";
         if (readAfterMic) speak(answer);
       } catch (error) {
         pending.remove();

@@ -202,7 +202,7 @@ def test_reservations_chat_isolated_from_table_script(tmp_path):
         assert 'id="sendChat"' in page.text
         assert 'id="chatInput"' in page.text
         assert 'id="micChat"' in page.text
-        assert '/static/bokharest_reservations_chat.js?v=1' in page.text
+        assert '/static/bokharest_reservations_chat.js?v=2' in page.text
         assert "function bubble(" not in page.text
         script = client.get("/static/bokharest_reservations_chat.js")
         assert script.status_code == 200

@@ -16,7 +16,7 @@ def test_bokharest_chat_appears_on_menu_and_answers_from_catalogue(tmp_path):
         assert 'id="bokharestChatForm"' in html
         assert 'id="bokharestChatMic"' in html
         assert 'id="bokharestChatVoice"' in html
-        assert '/static/bokharest_chat.js?v=1' in html
+        assert '/static/bokharest_chat.js?v=2' in html
         assert '/static/bokharest.css?v=5' in html
         assert '/static/images/ai-commerce-logo.webp' in html
 
@@ -25,6 +25,9 @@ def test_bokharest_chat_appears_on_menu_and_answers_from_catalogue(tmp_path):
         assert "/api/bokharest/demo-chat" in script.text
         assert "speechSynthesis" in script.text
         assert "SpeechRecognition" in script.text
+        assert "history.push(message, reply)" in script.text
+        assert "micTimeout" in script.text
+        assert "AbortController" in script.text
         assert "textContent" in script.text  # render untrusted text safely
         assert 'body: JSON.stringify({message, history:history.slice(-6)})' in script.text
         assert "/admin/" not in script.text

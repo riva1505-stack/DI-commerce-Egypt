@@ -9,7 +9,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py auth_security.py assistant_engine.py voice_gateway.py bokharest_ordering.py bokharest_demo.py bokharest_showcase.py bokharest_free_ai.py restaurant_tenants.py ./
+COPY app.py auth_security.py assistant_engine.py voice_gateway.py bokharest_ordering.py bokharest_demo.py bokharest_showcase.py bokharest_free_ai.py gemini_main.py restaurant_tenants.py ./
 COPY templates/ ./templates/
 COPY static/ ./static/
 COPY data/README.txt ./data/README.txt

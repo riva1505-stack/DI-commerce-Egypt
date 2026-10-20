@@ -1,0 +1,107 @@
+"""Free catalogue-backed conversation and fake-table reservations must stay isolated."""
+from datetime import datetime, timedelta
+from pathlib import Path
+import re
+import sqlite3
+from zoneinfo import ZoneInfo
+
+from fastapi.testclient import TestClient
+from app import create_app
+
+
+def tomorrow():
+    return (datetime.now(ZoneInfo("Africa/Cairo")).date()
+            + timedelta(days=1)).isoformat()
+
+
+def new_client(tmp_path: Path):
+    app = create_app(tmp_path / "showcase.sqlite",
+                     admin_password="test-showcase-password",
+                     secret_key="z" * 52)
+    return TestClient(app)
+
+
+def test_free_chat_grounded_in_bokharest_catalogue(tmp_path):
+    with new_client(tmp_path) as client:
+        r = client.post("/api/bokharest/demo-chat",
+                        json={"message": "عندكم دجاج؟", "history": []})
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["mode"] == "catalogue-demo"
+        assert data["items"], data
+        assert "دجاج" in data["text"]
+        assert "براونيز" not in data["text"]
+
+        menu = client.post("/api/bokharest/demo-chat",
+                           json={"message": "إيه المنيو النهاردة؟"}).json()
+        assert "منيو" in menu["text"]
+        assert "دجاج" in menu["text"]
+        assert menu["mode"] == "catalogue-demo"
+
+        booking = client.post("/api/bokharest/demo-chat",
+                              json={"message": "عايز أحجز ترابيزة"}).json()
+        assert booking["link"] == "/bokharest/reserve"
+        assert "مش حجز مؤكد" in booking["text"]
+
+        allergy = client.post("/api/bokharest/demo-chat",
+                              json={"message": "عندي حساسية مكسرات"}).json()
+        assert not allergy["items"]
+
+        assert client.get("/bokharest/reserve").status_code == 200
+        page = client.get("/bokharest").text
+        assert 'href="/bokharest/reserve"' in page
+
+
+def test_bookings_are_demo_only_and_do_not_reach_real_orders(tmp_path):
+    with new_client(tmp_path) as client:
+        date = tomorrow()
+        params = {"date": date, "time": "19:00", "guests": 2}
+        available = client.get("/api/bokharest/demo-tables", params=params)
+        assert available.status_code == 200, available.text
+        tables = available.json()["tables"]
+        assert available.json()["demo_only"] is True
+        assert len(tables) == 12
+        assert next(t for t in tables if t["table_no"] == 2)["demo_occupied"]
+        assert next(t for t in tables if t["table_no"] == 1)["available"]
+
+        payload = {"date": date, "time": "19:00", "guests": 2,
+                   "table_no": 1, "guest_name": "Test Guest"}
+        created = client.post("/api/bokharest/demo-reservations", json=payload)
+        assert created.status_code == 201, created.text
+        reference = created.json()["reference"]
+        assert reference.startswith("BKH-RES-DEMO-")
+        assert created.json()["demo_only"]
+
+        assert client.post("/api/bokharest/demo-reservations", json=payload).status_code == 409
+        tables = client.get("/api/bokharest/demo-tables", params=params).json()["tables"]
+        assert not next(t for t in tables if t["table_no"] == 1)["available"]
+
+        assert client.get("/admin/bokharest-reservations", follow_redirects=False).status_code == 303
+        login = client.post("/admin/login", data={"password": "test-showcase-password"},
+                            follow_redirects=False)
+        assert login.status_code == 303
+        admin = client.get("/admin/bokharest-reservations")
+        assert admin.status_code == 200 and reference in admin.text
+        csrf = re.search(r'name="csrf" value="([^"]+)"', admin.text).group(1)
+        cancel = client.post("/admin/bokharest-reservations/1/cancel",
+                             data={"csrf": csrf}, follow_redirects=False)
+        assert cancel.status_code == 303
+        tables = client.get("/api/bokharest/demo-tables", params=params).json()["tables"]
+        assert next(t for t in tables if t["table_no"] == 1)["available"]
+
+    with sqlite3.connect(tmp_path / "showcase.sqlite") as db:
+        assert db.execute("SELECT COUNT(*) FROM bokharest_demo_reservations").fetchone()[0] == 1
+        assert db.execute("SELECT COUNT(*) FROM bokharest_orders").fetchone()[0] == 0
+        assert db.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 0
+
+
+def test_booking_validation(tmp_path):
+    with new_client(tmp_path) as client:
+        date = tomorrow()
+        payload = {"date": date, "time": "19:00", "guests": 4, "table_no": 1}
+        assert client.post("/api/bokharest/demo-reservations", json=payload).status_code == 422
+        payload["table_no"] = 6  # seeded, clearly fictional occupancy
+        assert client.post("/api/bokharest/demo-reservations", json=payload).status_code == 409
+        payload["table_no"] = 5
+        payload["date"] = "2020-01-01"
+        assert client.post("/api/bokharest/demo-reservations", json=payload).status_code == 422

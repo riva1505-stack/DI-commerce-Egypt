@@ -31,6 +31,7 @@ import qrcode
 from assistant_engine import ai_chat, guided_chat, has_allergy, has_dietary_concern
 from bokharest_demo import install_bokharest_demo
 from bokharest_showcase import install_bokharest_showcase
+from restaurant_tenants import install_tenant_platform
 from auth_security import AdminAuth, PREVIEW_SECRET, SESSION_SECONDS, hash_password, parse_password_hash
 from voice_gateway import transcribe_audio, synthesize_speech
 from fastapi import FastAPI, HTTPException, Request
@@ -683,6 +684,8 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
 
     install_bokharest_demo(app, db_path, is_admin, verify_csrf, csrf_for, TEMPLATES)
     install_bokharest_showcase(app, db_path, is_admin, verify_csrf, csrf_for, TEMPLATES)
+    install_tenant_platform(app, db_path, is_admin, verify_csrf, csrf_for,
+                            secret_key, production, TEMPLATES, auth.reserve_login_attempt)
     return app
 
 

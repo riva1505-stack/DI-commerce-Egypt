@@ -181,3 +181,29 @@ html[dir="ltr"] .sidebar{border-left:0;border-right:1px solid #d6a16758}
 .brand-logo,.sidebar .brand-logo,.login-card .brand-logo{width:72px;height:72px;min-width:72px;flex:0 0 72px;background:transparent;border:0;box-shadow:none;border-radius:0;overflow:visible;isolation:auto}
 .brand-logo img,.sidebar .brand-logo img,.login-card .brand-logo img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;filter:drop-shadow(0 3px 8px #0007)}
 @media(max-width:700px){.brand-logo,.sidebar .brand-logo,.login-card .brand-logo{width:56px;height:56px;min-width:56px;flex-basis:56px}}
+
+/* 2026-10-20 logo visibility fix. The artwork is a detailed full emblem,
+   not a tiny monogram. Do not crop or hide it on narrow screens. */
+.brand-logo,.sidebar .brand-logo,.login-card .brand-logo{
+  width:108px;height:108px;min-width:108px;flex:0 0 108px;
+  background:transparent;border:0;box-shadow:none;border-radius:0;overflow:visible;
+}
+.brand-logo img,.sidebar .brand-logo img,.login-card .brand-logo img{
+  display:block;width:100%;height:100%;object-fit:contain;object-position:center;
+}
+.assistant-icon{
+  display:grid;place-items:center;width:100px;height:100px;min-width:100px;
+  overflow:visible;background:transparent;border:0;box-shadow:none;border-radius:0;
+}
+.assistant-icon img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;filter:drop-shadow(0 4px 11px #0009)}
+@media(max-width:700px){
+  .topbar>.brand{flex-basis:170px}
+  .brand-logo,.login-card .brand-logo{width:84px;height:84px;min-width:84px;flex-basis:84px}
+  .sidebar .brand-logo{width:50px;height:50px;min-width:50px;flex-basis:50px}
+  .assistant-icon{display:grid;width:76px;height:76px;min-width:76px}
+}
+@media(max-width:390px){
+  .brand-logo,.login-card .brand-logo{width:72px;height:72px;min-width:72px;flex-basis:72px}
+  .sidebar .brand-logo{width:48px;height:48px;min-width:48px;flex-basis:48px}
+  .assistant-icon{width:68px;height:68px;min-width:68px}
+}

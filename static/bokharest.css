@@ -197,3 +197,9 @@ body.demo-cart-open{overflow:hidden}
   .bokharest-chat-mic,.bokharest-chat-submit{flex:1 1 auto}
 }
 @media(prefers-reduced-motion:reduce){.bokharest-conversation{scroll-behavior:auto}}
+
+/* Show complete original DI artwork with sufficient physical area. */
+.logo.bokharest-mark{width:112px;height:112px;flex:0 0 112px;min-width:112px;overflow:visible}
+.bokharest-mark img{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
+@media(max-width:639px){.logo.bokharest-mark{width:88px;height:88px;min-width:88px;flex:0 0 88px}}
+@media(max-width:380px){.logo.bokharest-mark{width:78px;height:78px;min-width:78px;flex:0 0 78px}}

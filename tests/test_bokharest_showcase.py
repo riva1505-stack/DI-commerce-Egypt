@@ -145,3 +145,48 @@ def test_bokharest_social_replies_are_natural_and_do_not_fabricate_menu(tmp_path
         booking = client.post("/api/bokharest/demo-chat",
                               json={"message": "مساء الخير عايزة أحجز طاولة"}).json()
         assert booking["link"] == "/bokharest/reserve"
+
+
+
+def test_bokharest_chat_remembers_chicken_and_recommends_with_reason(tmp_path):
+    """Multi-turn dialogue must resolve pronouns without inventing menu products."""
+    with new_client(tmp_path) as client:
+        def chat(message, history=()):
+            response = client.post("/api/bokharest/demo-chat",
+                                   json={"message": message, "history": list(history)})
+            assert response.status_code == 200, response.text
+            return response.json()
+
+        customer = "عندكم فراخ؟"
+        listed = chat(customer)
+        assert len(listed["items"]) == 2
+        assert "كانتري تشيكن" in listed["text"]
+        assert "ترياكي تشيكن" in listed["text"]
+
+        history = [customer, listed["text"]]
+        chosen = chat("إيه أفضلهم؟", history)
+        assert "ترياكي تشيكن" in chosen["text"]
+        assert chosen["items"][0]["id"] == 96
+        assert "مشوي" in chosen["text"]
+        assert "مش لاقي صنف" not in chosen["text"]
+
+        expanded_history = history + ["إيه أفضلهم؟", chosen["text"]]
+        price = chat("طب بكام؟", expanded_history)
+        assert "ترياكي تشيكن" in price["text"]
+        assert "129.99" in price["text"]
+        assert "كانتري تشيكن" not in price["text"]
+
+        compared = chat("إيه الفرق بينهم؟", history)
+        assert "كانتري تشيكن" in compared["text"]
+        assert "ترياكي تشيكن" in compared["text"]
+
+        healthy = chat("مين أخف أو صحي أكتر؟", history)
+        assert healthy["items"][0]["id"] == 96
+        assert "ما عندناش سعرات" in healthy["text"]
+
+        choice = chat("اختارلي حاجة على زوقك")
+        assert choice["items"] and "أرشّحلك" in choice["text"]
+        assert "مش لاقي صنف" not in choice["text"]
+        allergy = chat("عندي حساسية سمسم", expanded_history)
+        assert not allergy["items"]
+        assert "موظف المطعم" in allergy["text"]

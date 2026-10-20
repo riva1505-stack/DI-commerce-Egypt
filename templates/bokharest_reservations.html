@@ -110,18 +110,24 @@ let busy=false;
 const micChat=$("micChat"),listenChat=$("listenChat"),voiceStatus=$("voiceStatus");
 const SpeechRecognitionCtor=window.SpeechRecognition||window.webkitSpeechRecognition;
 const canSpeak=("speechSynthesis" in window)&&("SpeechSynthesisUtterance" in window);
-let lastAnswer="",speakAfterMicrophone=false;
+let lastAnswer="",speakAfterMicrophone=false,activeRecognizer=null,micTimeout=null,recognizedQuestion="";
 function say(text){
 if(!canSpeak){voiceStatus.textContent="المتصفح ده لا يدعم قراءة الرد بصوت مسموع.";return;}
 try{
 window.speechSynthesis.cancel();
-const utterance=new SpeechSynthesisUtterance(String(text).slice(0,1500));
-utterance.lang="ar-EG";utterance.rate=.94;
-const voice=window.speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith("ar"));
-if(voice)utterance.voice=voice;
-utterance.onerror=()=>{voiceStatus.textContent="الصوت ما اشتغلش على الجهاز. جربي الضغط على «اسمعي الرد» مرة تانية أو افتحي Safari."};
+const spoken=String(text).replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu,"")
+  .replace(/(\d+)\.(\d{2}) (?:جنيه|ج\.م)/g,(_,pounds,pennies)=>
+    Number(pennies)?pounds+" جنيه و"+Number(pennies)+" قرش":pounds+" جنيه").slice(0,650);
+const utterance=new SpeechSynthesisUtterance(spoken);
+utterance.lang="ar-EG";utterance.rate=.88;utterance.pitch=1;
+const voices=window.speechSynthesis.getVoices();
+const selected=voices.find(v=>v.lang.toLowerCase()==="ar-eg")
+ || voices.find(v=>v.lang.toLowerCase().startsWith("ar"));
+if(selected)utterance.voice=selected;
+utterance.onerror=()=>{voiceStatus.textContent="الصوت لم يعمل على المتصفح. يمكنك قراءة الرد هنا أو إعادة المحاولة.";};
+utterance.onend=()=>{voiceStatus.textContent="جاهز للسؤال التالي.";};
 window.speechSynthesis.speak(utterance);
-}catch(e){voiceStatus.textContent="تعذر تشغيل الصوت. جربي من متصفح Safari مباشرة.";}
+}catch(e){voiceStatus.textContent="تعذر تشغيل الصوت. يمكنك قراءة الرد بدلًا منه.";}
 }
 listenChat.disabled=!canSpeak;
 if(canSpeak)listenChat.addEventListener("click",()=>{if(lastAnswer)say(lastAnswer);});
@@ -129,37 +135,54 @@ if(!SpeechRecognitionCtor){
 micChat.disabled=true;micChat.title="المتصفح الحالي لا يدعم تحويل الكلام إلى نص";
 voiceStatus.textContent="تقدري تسمعي الرد بالضغط على 🔊 بعد إرسال رسالة، لكن الميكروفون غير مدعوم في المتصفح ده. جرّبي Safari أو اكتبي سؤالك.";
 }else{
-const rec=new SpeechRecognitionCtor();
-rec.lang="ar-EG";rec.interimResults=false;rec.maxAlternatives=1;
-rec.onstart=()=>{micChat.setAttribute("aria-pressed","true");micChat.textContent="🎙️ بسمعك...";voiceStatus.textContent="اتكلمي دلوقتي. المتصفح ممكن يطلب إذن الميكروفون.";};
-rec.onresult=event=>{
-const spoken=event.results&&event.results[0]&&event.results[0][0]&&event.results[0][0].transcript;
-if(spoken){$("chatInput").value=spoken;speakAfterMicrophone=true;ask(spoken);}
-else voiceStatus.textContent="مسمعتش السؤال بوضوح، جرّبي مرة تانية.";
-};
-rec.onerror=event=>{
-speakAfterMicrophone=false;
-voiceStatus.textContent=event.error==="not-allowed"?"الميكروفون مرفوض. اسمحي باستخدامه من إعدادات المتصفح.":"تعذر سماع الصوت. جربي مرة تانية أو اكتبي السؤال.";
-};
-rec.onend=()=>{micChat.setAttribute("aria-pressed","false");micChat.textContent="🎙️ اتكلمي";};
 micChat.addEventListener("click",()=>{
 if(busy){voiceStatus.textContent="استني رد المساعد الأول.";return;}
-try{rec.start();}catch(e){voiceStatus.textContent="الميكروفون مش متاح دلوقتي. جربي فتح الصفحة في Safari.";}}
+if(activeRecognizer){try{activeRecognizer.stop();}catch(_){}return;}
+try{
+if(canSpeak)window.speechSynthesis.cancel();
+const rec=new SpeechRecognitionCtor();activeRecognizer=rec;recognizedQuestion="";
+rec.lang="ar-EG";rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=1;
+rec.onstart=()=>{micChat.setAttribute("aria-pressed","true");micChat.textContent="🎙️ بسمعك...";voiceStatus.textContent="اتكلمي دلوقتي، وخلّصي سؤالك براحتك.";};
+rec.onresult=event=>{recognizedQuestion=event.results?.[0]?.[0]?.transcript||"";};
+rec.onerror=event=>{recognizedQuestion="";voiceStatus.textContent=event.error==="not-allowed"?
+"الميكروفون مرفوض. اسمحي باستخدامه من إعدادات المتصفح.":"تعذر فهم الصوت. اكتبي سؤالك أو جرّبي مرة تانية.";};
+rec.onend=()=>{
+if(micTimeout){clearTimeout(micTimeout);micTimeout=null;}
+if(activeRecognizer!==rec)return;
+activeRecognizer=null;micChat.setAttribute("aria-pressed","false");micChat.textContent="🎙️ اتكلمي";
+const words=recognizedQuestion;recognizedQuestion="";
+if(words){speakAfterMicrophone=true;ask(words);}
+};
+rec.start();
+micTimeout=setTimeout(()=>{
+if(activeRecognizer===rec){
+try{rec.abort();}catch(_){}
+activeRecognizer=null;recognizedQuestion="";
+micChat.setAttribute("aria-pressed","false");micChat.textContent="🎙️ اتكلمي";
+voiceStatus.textContent="الميكروفون اتوقف تلقائيًا. تقدري تعيدي المحاولة أو تكتبي.";
+}
+micTimeout=null;
+},15000);
+}catch(e){activeRecognizer=null;micChat.setAttribute("aria-pressed","false");micChat.textContent="🎙️ اتكلمي";voiceStatus.textContent="الميكروفون مش متاح دلوقتي، جربي الكتابة.";}}
 );
 }
 async function ask(raw){
-const message=String(raw||"").trim();if(!message||busy)return;
+const message=String(raw||"").trim().slice(0,300);if(!message||busy)return;
 bubble(message,true);$("chatInput").value="";busy=true;$("sendChat").disabled=true;
 bubble("بدور في المنيو المسجل...");
 const pending=$("chatMessages").lastElementChild;
 try{
-const r=await fetch("/api/bokharest/demo-chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message,history})});
+const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),15000);
+let r;
+try{r=await fetch("/api/bokharest/demo-chat",{method:"POST",headers:{"Content-Type":"application/json"},
+body:JSON.stringify({message,history:history.slice(-6)}),signal:controller.signal});}
+finally{clearTimeout(timeout);}
 const data=await r.json();if(!r.ok)throw Error(data.detail||"حدث خطأ");
 pending.remove();bubble(data.text,false,"إجابات مبنية على بيانات تجريبية · من غير AI مدفوع");
 lastAnswer=data.text;listenChat.disabled=!canSpeak;
+history.push(message,data.text);history=history.slice(-6);
 if(speakAfterMicrophone){speakAfterMicrophone=false;say(lastAnswer);}
-history.push(message);history=history.slice(-6);
-}catch(e){speakAfterMicrophone=false;pending.remove();bubble("معلش، حصلت مشكلة في تجربة المساعد: "+e.message);}
+}catch(e){speakAfterMicrophone=false;pending.remove();bubble("معلش، حصلت مشكلة في تجربة المساعد. جربي تكتبي السؤال مرة تانية.");}
 finally{busy=false;$("sendChat").disabled=false;$("chatInput").focus();}
 }
 $("chatForm").addEventListener("submit",e=>{e.preventDefault();ask($("chatInput").value)});

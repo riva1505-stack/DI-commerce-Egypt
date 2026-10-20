@@ -135,71 +135,206 @@ def _small_talk_reply(message: str) -> str | None:
     return "تفضل، شو بتحب تطلب من بوخارست؟ فيني أساعدك تشوف الأصناف والأسعار الموجودة في المنيو التجريبي."
 
 
+def _menu_items_with_categories() -> list[dict]:
+    """Use the live demo JSON, not hard-coded dish names or prices."""
+    from bokharest_ordering import MENU_PATH
+    import json
+    sections = json.loads(MENU_PATH.read_text(encoding="utf-8"))["categories"]
+    return [{**item, "_category_ar": section["name_ar"], "_category_en": section["name_en"]}
+            for section in sections for item in section["items"]]
+
+
+def _dish_reference(item: dict) -> dict:
+    return {"id": item["id"], "name": item["name_ar"],
+            "price_piasters": item["price_piasters"]}
+
+
+def _price_text(item: dict) -> str:
+    return f'{item["price_piasters"] / 100:.2f} جنيه'
+
+
+def _query_mentions(text: str, phrases: tuple[str, ...]) -> bool:
+    q = normalize(text)
+    return any(normalize(phrase) in q for phrase in phrases)
+
+
+def _chicken_question(text: str) -> bool:
+    return _query_mentions(text, ("دجاج", "فراخ", "فرخة", "فراخ", "تشيكن", "chicken", "poulet"))
+
+
+def _topic_matches(text: str, items: list[dict]) -> list[dict]:
+    """Prefer the real category for broad questions; don't match unrelated filler."""
+    q = normalize(text)
+    if _chicken_question(text):
+        # A customer asking for chicken mains expects the chicken section first.
+        return [i for i in items if normalize(i["_category_ar"]) == normalize("دجاج")]
+    topics = (
+        (("ساندويتش", "ساندوتش", "سندوتش", "sandwich", "شاورما"), ("ساندويتشات",)),
+        (("عصير", "عصائر", "juice"), ("عصائر طازجة",)),
+        (("مشروبات", "مشروب", "drink"), ("مشروبات مميزة", "مشروبات ساخنة")),
+        (("سلطة", "سلطات", "salad"), ("سلطات",)),
+        (("سموذي", "smoothie"), ("سموذي",)),
+    )
+    for words, categories in topics:
+        if _query_mentions(q, words):
+            return [i for i in items if i["_category_ar"] in categories]
+    return []
+
+
+def _named_items(text: str, items: list[dict]) -> list[dict]:
+    q = normalize(text)
+    return [i for i in items if
+            normalize(i["name_ar"]) in q or
+            (len(i["name_en"]) >= 5 and normalize(i["name_en"]) in q)]
+
+
+def _context_items(history: list[str], items: list[dict]) -> list[dict]:
+    """Resolve 'which one?', 'price?' and 'on your taste' against recent turns.
+
+    The browser sends the last six customer/assistant utterances, but legacy
+    clients sending customer turns only are supported too.
+    """
+    for utterance in reversed(history[-6:]):
+        named = _named_items(utterance, items)
+        if named:
+            return named[:4]
+        topic = _topic_matches(utterance, items)
+        if topic:
+            return topic[:4]
+    return []
+
+
+def _choose_dish(candidates: list[dict], *, prefer_light: bool = False) -> dict:
+    """Opinionated, explainable demo choice; never invent ratings or nutrition."""
+    def preference(item: dict) -> tuple[int, int]:
+        description = normalize(item.get("description_ar", "") + " " + item.get("description_en", ""))
+        category = normalize(item.get("_category_ar", ""))
+        grilled = "مشوي" in description or "grilled" in description
+        salad = "سلطات" in category
+        # Grilled dishes have an explainable cooking-method preference.
+        return (int(grilled) * 5 + int(salad) * (4 if prefer_light else 1),
+                -item["price_piasters"])
+    return max(candidates, key=preference)
+
+
 def menu_reply(message: str, history: list[str] | None = None) -> dict:
-    """Data-backed deterministic demo; deliberately does not claim to be a generative LLM."""
-    restaurant, catalog = _catalog()
-    items = list(catalog.values())
+    """Conversational, menu-grounded demo; not a general-purpose generative AI."""
+    history = (history or [])[-6:]
     q = normalize(message)
+    _, catalog = _catalog()
+    items = _menu_items_with_categories()
+
+    # Food safety takes precedence over any recommendation or dialogue context.
+    if _query_mentions(q, ("حساسي", "مكسرات", "جلوتين", "غلوتين", "لاكتوز",
+                           "allerg", "peanut", "gluten", "سيلياك")):
+        return {"text": "سلامتك أهم. ماقدرش أؤكد مكونات أو خلو أي طبق من الحساسية؛ لازم تسألي موظف المطعم قبل الطلب.",
+                "items": [], "mode": "catalogue-demo"}
+    if _query_mentions(q, ("احجز", "حجز", "ترابيز", "طاوله", "طاولة",
+                           "table", "reserv", "booking")):
+        return {"text": "أكيد! عندنا تجربة حجز ترابيزة بتختاري فيها اليوم والساعة وعدد الأشخاص والترابيزة نفسها. دي محاكاة للعرض، مش حجز مؤكد في المطعم. افتحي «احجزي ترابيزة تجريبيًا» من الصفحة.",
+                "items": [], "link": "/bokharest/reserve", "mode": "catalogue-demo"}
+
     social = _small_talk_reply(message)
     if social is not None:
         return {"text": social, "items": [], "mode": "catalogue-demo"}
-    if any(w in q for w in ("حساسي", "مكسرات", "جلوتين", "لاكتوز", "allerg", "peanut", "gluten")):
-        return {"text": "سلامتك أهم. ماقدرش أؤكد مكونات أو خلو أي طبق من الحساسية؛ لازم تسألي موظف المطعم قبل الطلب.",
+
+    explicit = _named_items(message, items)
+    topical = _topic_matches(message, items)
+    context = _context_items(history, items)
+    scope = explicit or topical or context
+
+    preference = _query_mentions(q, ("افضل", "احسن", "ارشح", "ترشح", "تنصح",
+                                      "اختار", "اختاري", "على ذوقك", "علي ذوقك",
+                                      "ع ذوقك", "على زوقك", "علي زوقك", "زوقك",
+                                      "ذوقك", "recommend", "best", "suggest",
+                                      "انسب", "الذ", "اطيب", "ايه رايك", "شو بتنصح"))
+    healthier = _query_mentions(q, ("صحي", "اخف", "خفيف", "دايت", "مشوي", "healthy", "lighter", "light"))
+    cheap = _query_mentions(q, ("ارخص", "اوفر", "اقتصادي", "cheapest", "budget"))
+    compare = _query_mentions(q, ("الفرق", "قارن", "مقارنه", "compare", "الاختلاف"))
+    price = _query_mentions(q, ("بكام", "السعر", "اسعار", "كام جنيه", "price", "cost", "ثمن"))
+    details = _query_mentions(q, ("مكونات", "مكوناته", "فيه ايه", "جواه", "معاه", "details", "ingredients"))
+
+    # Recommendations are subjective suggestions based on actual descriptions,
+    # not claims about bestselling dishes, health outcomes or stock availability.
+    if preference or healthier or cheap:
+        options = scope or [i for i in items if normalize(i["_category_ar"]) == normalize("دجاج")]
+        if not options:
+            return {"text": "تحبي أرشّحلك دجاج، سلطة، ولا ساندويتش؟ قوليلّي بتحبي إيه وأنا أختار من المنيو.",
+                    "items": [], "mode": "catalogue-demo"}
+        chosen = min(options, key=lambda i: i["price_piasters"]) if cheap else _choose_dish(options, prefer_light=healthier)
+        description = chosen.get("description_ar", "").strip()
+        if cheap:
+            reason = "ده الأقل سعرًا بين الاختيارات اللي بنتكلم عنها."
+        elif healthier:
+            reason = ("المنيو بيذكر إنه مشوي، وده ممكن يناسب اللي يفضّل المشوي."
+                      if _query_mentions(description, ("مشوي",)) else
+                      "ده اختياري حسب الوصف المتاح، مش تقييم صحي مؤكد.")
+        else:
+            reason = ("عجبني إنه مشوي وطريقة تقديمه واضحة في المنيو."
+                      if _query_mentions(description, ("مشوي",)) else
+                      "اختياري مبني على مكونات الطبق المكتوبة في المنيو.")
+        caution = (" ما عندناش سعرات أو تفاصيل تغذية مؤكدة، فماقدرش أقول إنه صحي أكتر طبيًا."
+                   if healthier else "")
+        return {"text": f"لو على ذوقي، أرشّحلك {chosen['name_ar']} بسعر {_price_text(chosen)}. "
+                        f"{reason} {description if description else ''}{caution} "
+                        "تحبي أحكيلك عنه أكتر ولا نختار حاجة تانية؟",
+                "items": [_dish_reference(chosen)], "mode": "catalogue-demo"}
+
+    if compare and len(scope) >= 2:
+        compared = scope[:3]
+        descriptions = "، ".join(f"{i['name_ar']}: {i.get('description_ar') or 'الوصف غير متوفر'}، {_price_text(i)}"
+                                 for i in compared)
+        return {"text": f"خليني أقارنلك بين الاختيارات من المنيو: {descriptions}. "
+                        "الاختيار بيرجع لذوقك، تحبي أختارلك واحد منهم؟",
+                "items": [_dish_reference(i) for i in compared], "mode": "catalogue-demo"}
+
+    # A vague follow-up should not be treated as a nonexistent menu product.
+    if price and (explicit or context) and not topical:
+        found = (explicit or context)[:4]
+        summary = "، ".join(f"{i['name_ar']} {_price_text(i)}" for i in found)
+        return {"text": f"أكيد، الأسعار المسجّلة هي: {summary}. دي أسعار المنيو التجريبي وبتحتاج تأكيد من المطعم. تحبي أساعدك تختاري؟",
+                "items": [_dish_reference(i) for i in found], "mode": "catalogue-demo"}
+    if details and (explicit or context):
+        found = (explicit or context)[:2]
+        summary = "، ".join(f"{i['name_ar']}: {i.get('description_ar') or 'تفاصيل المكونات مش مذكورة'}" for i in found)
+        return {"text": f"طبعًا! حسب المنيو: {summary}. بالنسبة للحساسية والمكونات الكاملة لازم نتأكد من المطعم.",
+                "items": [_dish_reference(i) for i in found], "mode": "catalogue-demo"}
+
+    if _query_mentions(q, ("المنيو", "القائمه", "القائمة", "اقسام", "menu", "بتقدموا", "عندكم ايه", "عندكو ايه")) and not topical and not explicit:
+        names = "، ".join(dict.fromkeys(i["_category_ar"] for i in items))
+        return {"text": f"منورانا! منيو بوخاريست التجريبي فيه {len(catalog)} صنف موزعين على: {names}. "
+                        "تحبي أقولك أصناف الدجاج مثلًا، ولا المشروبات، ولا حاجة حلوة؟ الأسعار الموجودة للعرض وتحتاج تأكيد المطعم.",
                 "items": [], "mode": "catalogue-demo"}
-    if any(w in q for w in ("احجز", "حجز", "ترابيز", "طاوله", "طاولة", "table", "reserv", "booking")):
-        return {"text": "أكيد! عندنا تجربة حجز ترابيزة بتختاري فيها اليوم والساعة وعدد الأشخاص والترابيزة نفسها. دي محاكاة للعرض، مش حجز مؤكد في المطعم. افتحي «احجزي ترابيزة تجريبيًا» من الصفحة.",
-                "items": [], "link": "/bokharest/reserve", "mode": "catalogue-demo"}
-    if any(w in q for w in ("المنيو", "القائمه", "القائمة", "اقسام", "menu", "بتقدموا", "عندكم ايه", "عندكو ايه")):
-        groups = {}
-        for item in items:
-            key = normalize(item.get("name_ar", ""))
-        # Catalog groups are sourced from the same menu JSON as checkout.
-        from bokharest_ordering import MENU_PATH
-        import json
-        sections = json.loads(MENU_PATH.read_text(encoding="utf-8"))["categories"]
-        names = "، ".join(c["name_ar"] for c in sections)
-        return {"text": f"منورانا! منيو بوخاريست التجريبي فيه {len(items)} صنف موزعين على: {names}. تحبي أقولك أصناف الدجاج مثلًا، ولا المشروبات، ولا حاجة حلوة؟ الأسعار الموجودة للعرض وتحتاج تأكيد المطعم.",
-                "items": [], "mode": "catalogue-demo"}
-    terms = _tokens(message)
-    # A short follow-up such as "بكام؟" may refer to the preceding question.
-    if (not terms or all(t in ("بكام", "السعر", "كام", "price") for t in terms)) and history:
-        terms = _tokens(history[-1])
-    synonyms = {
-        "دجاج": ("دجاج", "فراخ", "فراخ", "تشيكن", "chicken", "poulet"),
-        "ساندويتشات": ("ساندويتش", "ساندوتش", "سندوتش", "sandwich", "شاورما"),
-        "مشروبات": ("عصير", "عصائر", "drink", "juice", "smoothie", "سموذي", "كوكتيل", "مشروب"),
-        "برجر": ("برجر", "برغر", "burger"),
-    }
-    expanded = set(terms)
-    for canonical, values in synonyms.items():
-        if any(v in q for v in values):
-            expanded.add(canonical)
-    if any(w in q for w in ("بكام", "السعر", "كام", "price")) and not expanded and history:
-        expanded.update(_tokens(history[-1]))
-    def score(item):
-        searchable = normalize(" ".join(str(item.get(k, "")) for k in
-                 ("name_ar", "name_en", "description_ar", "description_en")))
-        # Category labels are important for broad questions about chicken.
-        category = normalize(item.get("_category", ""))
-        return sum(4 for w in expanded if w in searchable) + sum(3 for w in expanded if w in category)
-    if expanded:
-        # Add actual category names, without hardcoding items or prices.
-        from bokharest_ordering import MENU_PATH
-        import json
-        sections = json.loads(MENU_PATH.read_text(encoding="utf-8"))["categories"]
-        enriched = [{**item, "_category": section["name_ar"] + " " + section["name_en"]}
-                    for section in sections for item in section["items"]]
-        ranked = sorted(enriched, key=score, reverse=True)
-        hits = [x for x in ranked if score(x) > 0][:4]
+
+    if explicit or topical:
+        matches = (explicit or topical)[:4]
     else:
-        hits = []
-    if hits:
-        names = "، ".join(f'{x["name_ar"]} ({x["price_piasters"] / 100:.2f} ج.م)' for x in hits)
-        topic = "الدجاج" if any(w in q for w in ("دجاج", "فراخ", "تشيكن", "chicken")) else "سؤالك"
-        return {"text": f"أيوه، لقيت أصناف مرتبطة بـ{topic} في المنيو: {names}. دي الأسعار المعروضة في النسخة التجريبية ومحتاجة تأكيد من المطعم. تحبي تفاصيل صنف معين؟",
-                "items": [{"id": x["id"], "name": x["name_ar"], "price_piasters": x["price_piasters"]} for x in hits],
-                "mode": "catalogue-demo"}
-    return {"text": "مش لاقي صنف مطابق لسؤالك في المنيو المسجل، ومش هخترع حاجة مش موجودة. ممكن تسأليني عن الدجاج، الساندويتشات، العصائر، أو تقولي «إيه المنيو؟».",
+        terms = _tokens(message)
+        filler = {normalize(x) for x in ("النهاردة", "النهارده", "عندكو", "عندكم", "عندك", "سؤال",
+                                         "ممكن", "أفضلهم", "احسنهم", "ايه", "كده")}
+        terms = [t for t in terms if t not in filler]
+        def score(item: dict) -> int:
+            searchable = normalize(" ".join(str(item.get(k, "")) for k in
+                                    ("name_ar", "name_en", "description_ar", "description_en",
+                                     "_category_ar", "_category_en")))
+            return sum(3 for t in terms if t in searchable)
+        matches = sorted([i for i in items if terms and score(i) > 0],
+                         key=score, reverse=True)[:4]
+
+    if matches:
+        names = "، ".join(f'{i["name_ar"]} ({_price_text(i)})' for i in matches)
+        topic = "الدجاج" if _chicken_question(message) else "طلبك"
+        return {"text": f"أيوه! عندنا أصناف مرتبطة بـ{topic}: {names}. دي الأسعار المعروضة في النسخة التجريبية ومحتاجة تأكيد من المطعم. "
+                        "تحبي أرشّحلك الأفضل على ذوقي ولا أشرح الفرق بينهم؟",
+                "items": [_dish_reference(i) for i in matches], "mode": "catalogue-demo"}
+
+    if context and _query_mentions(q, ("دول", "منهم", "انواعهم", "واحد", "تاني", "غيره", "other")):
+        return {"text": "أكيد، نقدر نكمل على الاختيارات اللي قلتلك عليها. "
+                        "تحبي ترشيح على ذوقي، مقارنة بينهم، ولا ندوّر على صنف مختلف؟",
+                "items": [_dish_reference(i) for i in context[:4]], "mode": "catalogue-demo"}
+
+    return {"text": "مش قادر أحدد تقصدي أي طبق بالضبط. تحبي أساعدك تختاري دجاج، "
+                    "ساندويتش، سلطة أو مشروب؟ وأنا أرشّحلك حاجة من المنيو.",
             "items": [], "mode": "catalogue-demo"}
 
 

@@ -85,11 +85,64 @@ def _tokens(text: str) -> list[str]:
                                         "موجود", "موجودة", "إيه", "ايه", "اللي", "the", "and", "have"}]
 
 
+
+def _small_talk_reply(message: str) -> str | None:
+    """Handle short, everyday customer exchanges before searching the catalogue.
+
+    Only consume *standalone* social phrases. A greeting followed by a dish
+    question must still reach the menu lookup, not be mistaken for small talk.
+    """
+    groups = (
+        ("morning", ("صباح الخير", "صباح النور", "صباح الورد", "صباح الفل", "صباحو",
+                     "يسعد صباحك", "good morning")),
+        ("evening", ("مساء الخير", "مسا الخير", "مساء النور", "مسا النور",
+                     "مساء الورد", "مسا الورد", "يسعد مساك", "good evening")),
+        ("wellbeing", ("كيفك", "كيف الحال", "كيف حالك", "شو اخبارك", "شو اخباركم",
+                       "عامل ايه", "عاملة ايه", "ازيك", "ازيكم", "اخبارك ايه",
+                       "how are you")),
+        ("hello", ("اهلا وسهلا", "أهلاً وسهلاً", "اهلا", "أهلاً", "مرحبا",
+                   "السلام عليكم", "هلا والله", "هلا", "هاي", "hello", "hi", "bonjour")),
+        ("thanks", ("شكراً", "شكرا", "ميرسي", "يسلمو", "تسلم", "thanks", "thank you")),
+        ("bye", ("مع السلامة", "مع السلامه", "باي", "goodbye", "bye")),
+        ("order", ("بدي اطلب", "عايز اطلب", "عايزة اطلب", "عاوز اطلب",
+                   "حابب اطلب", "حابة اطلب", "شو اطلب", "بدي اكل")),
+    )
+    remaining = " ".join(re.findall(r"[\\w\\u0621-\\u064a]+", normalize(message)))
+    found: set[str] = set()
+    for intent, phrases in groups:
+        for phrase in sorted(phrases, key=len, reverse=True):
+            normalized_phrase = normalize(phrase)
+            pattern = r"(?<!\\w)" + re.escape(normalized_phrase) + r"(?!\\w)"
+            if re.search(pattern, remaining):
+                found.add(intent)
+                remaining = re.sub(pattern, " ", remaining)
+    # Polite fillers accompanying greetings shouldn't trigger a dish search.
+    remaining = re.sub(r"\\b(?:يا|بوخارست|بوخاريست|ياجماعه|ياجماعة)\\b", " ", remaining)
+    if not found or remaining.strip():
+        return None
+    if "morning" in found:
+        return "صباح النور والورد! ☀️ أهلاً وسهلاً في بوخارست. تفضل، شو بتحب تطلب اليوم؟ فيني أساعدك تختار من المنيو."
+    if "evening" in found:
+        return "مساء النور والفل! 🌙 نورت بوخارست. تفضل، شو حابب تطلب؟ بتحب تشوف المنيو أو تسأل عن صنف؟"
+    if "wellbeing" in found:
+        return "الحمد لله، تمام! ❤️ إنت كيفك؟ أهلاً وسهلاً في بوخارست. شو بتحب تطلب؟"
+    if "hello" in found:
+        return "أهلين وسهلين! نورت بوخارست 🌷 تفضل، شو حابب تطلب؟ أو بتحب أساعدك تختار من المنيو؟"
+    if "thanks" in found:
+        return "العفو، على راسي! إذا بدك أي شي من منيو بوخارست، أنا هون أساعدك."
+    if "bye" in found:
+        return "مع السلامة! نورت بوخارست، ومنستناك ترجع بالسلامة."
+    return "تفضل، شو بتحب تطلب من بوخارست؟ فيني أساعدك تشوف الأصناف والأسعار الموجودة في المنيو التجريبي."
+
+
 def menu_reply(message: str, history: list[str] | None = None) -> dict:
     """Data-backed deterministic demo; deliberately does not claim to be a generative LLM."""
     restaurant, catalog = _catalog()
     items = list(catalog.values())
     q = normalize(message)
+    social = _small_talk_reply(message)
+    if social is not None:
+        return {"text": social, "items": [], "mode": "catalogue-demo"}
     if any(w in q for w in ("حساسي", "مكسرات", "جلوتين", "لاكتوز", "allerg", "peanut", "gluten")):
         return {"text": "سلامتك أهم. ماقدرش أؤكد مكونات أو خلو أي طبق من الحساسية؛ لازم تسألي موظف المطعم قبل الطلب.",
                 "items": [], "mode": "catalogue-demo"}

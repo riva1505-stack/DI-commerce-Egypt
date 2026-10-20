@@ -17,7 +17,7 @@ def test_bokharest_chat_appears_on_menu_and_answers_from_catalogue(tmp_path):
         assert 'id="bokharestChatMic"' in html
         assert 'id="bokharestChatVoice"' in html
         assert '/static/bokharest_chat.js?v=3' in html
-        assert '/static/bokharest.css?v=6' in html
+        assert '/static/bokharest.css?v=7' in html
         assert '/static/images/ai-commerce-logo.webp' in html
 
         script = c.get("/static/bokharest_chat.js")

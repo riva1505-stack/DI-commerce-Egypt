@@ -91,7 +91,9 @@ def test_bookings_are_demo_only_and_do_not_reach_real_orders(tmp_path):
 
     with sqlite3.connect(tmp_path / "showcase.sqlite") as db:
         assert db.execute("SELECT COUNT(*) FROM bokharest_demo_reservations").fetchone()[0] == 1
-        assert db.execute("SELECT COUNT(*) FROM bokharest_orders").fetchone()[0] == 0
+        # The production-scoped Bokharest ordering module is not installed in this pilot.
+        if db.execute("SELECT name FROM sqlite_master WHERE name='bokharest_orders'").fetchone():
+            assert db.execute("SELECT COUNT(*) FROM bokharest_orders").fetchone()[0] == 0
         assert db.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 0
 
 

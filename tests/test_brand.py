@@ -8,13 +8,13 @@ def test_brand_integrated_in_all_pages(tmp_path):
     with TestClient(app) as c:
         home=c.get('/')
         assert home.status_code == 200
-        assert '/static/brand.css?v=1.2' in home.text
+        assert '/static/brand.css?v=1.3' in home.text
         assert 'DI Commerce' in home.text and '/static/images/ai-commerce-logo.webp' in home.text
         assert 'chatMic' in home.text and 'submitOrder' in home.text
         assert '/static/i18n.js' in home.text and 'id="diLanguage"' in home.text
         login=c.get('/admin/login')
         assert login.status_code == 200
-        assert '/static/brand.css?v=1.2' in login.text
+        assert '/static/brand.css?v=1.3' in login.text
         c.post('/admin/login',data={'password':'local-test'},follow_redirects=True)
         dashboard=c.get('/admin')
         assert dashboard.status_code==200

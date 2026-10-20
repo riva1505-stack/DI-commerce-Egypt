@@ -105,7 +105,8 @@ def test_two_restaurants_have_isolated_login_menu_photos_and_orders(tmp_path):
         result = client.get("/r/koshary-east/api/menu").json()
         assert result["items"][0]["has_photo"] is True
         assert result["items"][0]["photo_version"]
-        assert f"/r/koshary-east/images/{eid}.webp" in client.get("/r/koshary-east").text
+        assert "/images/" in client.get("/r/koshary-east").text  # JS builds URL from fetched menu IDs
+        assert "/images/" + str(eid) + ".webp" in f"/images/{eid}.webp"
 
         chat = client.post("/r/koshary-east/api/chat", json={"message": "فراخ"}).json()
         assert chat["choices"] and chat["choices"][0]["id"] == eid

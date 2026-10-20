@@ -107,17 +107,17 @@ def _small_talk_reply(message: str) -> str | None:
         ("order", ("بدي اطلب", "عايز اطلب", "عايزة اطلب", "عاوز اطلب",
                    "حابب اطلب", "حابة اطلب", "شو اطلب", "بدي اكل")),
     )
-    remaining = " ".join(re.findall(r"[\\w\\u0621-\\u064a]+", normalize(message)))
+    remaining = " ".join(re.findall(r"[\w\u0621-\u064a]+", normalize(message)))
     found: set[str] = set()
     for intent, phrases in groups:
         for phrase in sorted(phrases, key=len, reverse=True):
             normalized_phrase = normalize(phrase)
-            pattern = r"(?<!\\w)" + re.escape(normalized_phrase) + r"(?!\\w)"
+            pattern = r"(?<!\w)" + re.escape(normalized_phrase) + r"(?!\w)"
             if re.search(pattern, remaining):
                 found.add(intent)
                 remaining = re.sub(pattern, " ", remaining)
     # Polite fillers accompanying greetings shouldn't trigger a dish search.
-    remaining = re.sub(r"\\b(?:يا|بوخارست|بوخاريست|ياجماعه|ياجماعة)\\b", " ", remaining)
+    remaining = re.sub(r"\b(?:يا|بوخارست|بوخاريست|ياجماعه|ياجماعة)\b", " ", remaining)
     if not found or remaining.strip():
         return None
     if "morning" in found:

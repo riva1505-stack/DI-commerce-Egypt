@@ -21,7 +21,7 @@
       searchPlaceholder:"ابحث عن صنف...",chatPlaceholder:"مثلاً: نفسي في وجبة خفيفة لحد 200 جنيه",
       all:"كل الأصناف",send:"إرسال ←",startVoice:"🎤 ابدأ محادثة صوتية",
       stopVoice:"■ إنهاء المحادثة الصوتية",readOn:"🔊 صوت الردود: مفعّل",
-      readOff:"🔈 صوت الردود: مغلق",greeting:"أهلاً بيك! 😄 تحب تاكل إيه النهارده؟",
+      readOff:"🔈 صوت الردود: مغلق",greeting:"أهلاً بيك! 😄 تحب تاكل إيه؟ ولو بتحب تقلل الملح أو السكر أو الدهون، تقدر تقولّي باختيارك. مش محتاج تشارك أي تشخيص.",
       pizza:"🍕 بيتزا",burger:"🍔 برجر",light:"🥗 حاجة خفيفة",drinks:"🥤 مشروبات",
       askStaff:"للحساسية الغذائية راجع موظف المطعم.",waiting:"بانتظار موافقة المطعم"
     },
@@ -43,7 +43,7 @@
       searchPlaceholder:"Search the menu...",chatPlaceholder:"For example: something light under 200 EGP",
       all:"All items",send:"Send →",startVoice:"🎤 Start voice chat",
       stopVoice:"■ End voice chat",readOn:"🔊 Voice replies: on",
-      readOff:"🔈 Voice replies: off",greeting:"Welcome! 😄 What would you like to order?",
+      readOff:"🔈 Voice replies: off",greeting:"Welcome! 😄 What would you like to order? You can optionally tell me if you prefer less salt, sugar or saturated fat. No diagnosis needed.",
       pizza:"🍕 Pizza",burger:"🍔 Burger",light:"🥗 Something light",drinks:"🥤 Drinks",
       askStaff:"Please ask staff about food allergies.",waiting:"Awaiting restaurant approval"
     },
@@ -65,7 +65,7 @@
       searchPlaceholder:"Rechercher un plat...",chatPlaceholder:"Par exemple : un plat léger à moins de 200 EGP",
       all:"Tous les plats",send:"Envoyer →",startVoice:"🎤 Démarrer la conversation",
       stopVoice:"■ Terminer la conversation",readOn:"🔊 Réponses vocales : oui",
-      readOff:"🔈 Réponses vocales : non",greeting:"Bienvenue ! 😄 Que souhaitez-vous commander ?",
+      readOff:"🔈 Réponses vocales : non",greeting:"Bienvenue ! 😄 Que souhaitez-vous commander ? Vous pouvez indiquer vos préférences : moins de sel, de sucre ou de graisses saturées. Aucun diagnostic nécessaire.",
       pizza:"🍕 Pizza",burger:"🍔 Burger",light:"🥗 Plat léger",drinks:"🥤 Boissons",
       askStaff:"Consultez le personnel en cas d'allergie.",waiting:"En attente du restaurant"
     }

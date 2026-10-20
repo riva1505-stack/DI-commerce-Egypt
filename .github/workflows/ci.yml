@@ -22,4 +22,5 @@ jobs:
       - run: node --check static/i18n.js
       - run: node --check static/bokharest.js
       - run: node --check static/bokharest_cart.js
+      - run: node --check static/bokharest_chat.js
       - run: python -m py_compile bokharest_demo.py bokharest_ordering.py app.py

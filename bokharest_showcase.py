@@ -252,7 +252,17 @@ def menu_reply(message: str, history: list[str] | None = None) -> dict:
     cheap = _query_mentions(q, ("ارخص", "اوفر", "اقتصادي", "cheapest", "budget"))
     compare = _query_mentions(q, ("الفرق", "قارن", "مقارنه", "compare", "الاختلاف"))
     price = _query_mentions(q, ("بكام", "السعر", "اسعار", "كام جنيه", "price", "cost", "ثمن"))
-    details = _query_mentions(q, ("مكونات", "مكوناته", "فيه ايه", "جواه", "معاه", "details", "ingredients"))
+    # "احكيلي عنه أكتر" is a continuation of our own recommendation, not
+    # a new food search. Cover Egyptian/Levantine colloquialisms and English.
+    details = _query_mentions(q, (
+        "مكونات", "مكوناته", "مكوناتها", "تفاصيل", "تفصيل",
+        "فيه ايه", "جواه", "معاه", "احكي", "احكيلي", "احكيلنا",
+        "قولي عنه", "قوليلي عنه", "قول لي عنه", "عرفني عنه",
+        "عرفيني عنه", "اشرح", "اشرحلي", "شرح", "تكلم عنه", "اتكلم عنه",
+        "عنه اكتر", "عنها اكتر", "عنهم اكتر", "عايز اعرف عنه",
+        "عايزة اعرف عنه", "more about", "tell me more", "explain",
+        "details", "ingredients",
+    ))
 
     # Recommendations are subjective suggestions based on actual descriptions,
     # not claims about bestselling dishes, health outcomes or stock availability.
@@ -294,11 +304,26 @@ def menu_reply(message: str, history: list[str] | None = None) -> dict:
         summary = "، ".join(f"{i['name_ar']} {_price_text(i)}" for i in found)
         return {"text": f"أكيد، الأسعار المسجّلة هي: {summary}. دي أسعار المنيو التجريبي وبتحتاج تأكيد من المطعم. تحبي أساعدك تختاري؟",
                 "items": [_dish_reference(i) for i in found], "mode": "catalogue-demo"}
-    if details and (explicit or context):
-        found = (explicit or context)[:2]
-        summary = "، ".join(f"{i['name_ar']}: {i.get('description_ar') or 'تفاصيل المكونات مش مذكورة'}" for i in found)
-        return {"text": f"طبعًا! حسب المنيو: {summary}. بالنسبة للحساسية والمكونات الكاملة لازم نتأكد من المطعم.",
-                "items": [_dish_reference(i) for i in found], "mode": "catalogue-demo"}
+    if details:
+        found = explicit or context
+        if not found:
+            return {"text": "من عيوني! تحبي أحكيلك عن أنهي صنف؟ قوليلّي اسمه أو اسألي عن الدجاج مثلًا، وأنا أشرحلك من المنيو.",
+                    "items": [], "mode": "catalogue-demo"}
+        # A singular follow-up ("احكيلي عنه") after a named recommendation
+        # focuses on that one dish; plural requests can show two.
+        plural = _query_mentions(q, ("عنهم", "عليهم", "كلهم", "دول", "كل الاصناف", "both", "them"))
+        chosen = found[:2] if plural else found[:1]
+        parts = []
+        for item in chosen:
+            description = item.get("description_ar", "").strip()
+            details_text = (f"حسب المنيو، {item['name_ar']} عبارة عن {description}."
+                            if description else
+                            f"حسب المنيو، اسم الصنف {item['name_ar']}، لكن وصفه التفصيلي مش مذكور.")
+            parts.append(f"{details_text} سعره المعروض {_price_text(item)}.")
+        return {"text": "أكيد! " + " ".join(parts) +
+                        " ده وصف المنيو التجريبي، والمكونات الكاملة ومسببات الحساسية محتاجة تأكيد من المطعم. "
+                        "تحبي ترشيح تاني أو مقارنة مع صنف مختلف؟",
+                "items": [_dish_reference(i) for i in chosen], "mode": "catalogue-demo"}
 
     if _query_mentions(q, ("المنيو", "القائمه", "القائمة", "اقسام", "menu", "بتقدموا", "عندكم ايه", "عندكو ايه")) and not topical and not explicit:
         names = "، ".join(dict.fromkeys(i["_category_ar"] for i in items))

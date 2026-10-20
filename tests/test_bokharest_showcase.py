@@ -224,3 +224,56 @@ def test_reservations_chat_isolated_from_table_script(tmp_path):
                                      "history": ["عندكم دجاج؟", chicken.json()["text"]]})
         assert followup.status_code == 200
         assert "ترياكي تشيكن" in followup.json()["text"]
+
+
+def test_tell_me_more_about_previous_recommendation(tmp_path):
+    """Customers should not lose context after accepting 'أحكيلك عنه أكتر؟'."""
+    with new_client(tmp_path) as client:
+        def send(message, history):
+            result = client.post("/api/bokharest/demo-chat",
+                                 json={"message": message, "history": history[-6:]})
+            assert result.status_code == 200, result.text
+            return result.json()
+
+        history = []
+        def turn(message):
+            response = send(message, history)
+            history.extend([message, response["text"]])
+            return response
+
+        listed = turn("عندك ايه فراخ النهاردة؟")
+        assert len(listed["items"]) == 2
+        recommended = turn("اختارلي واحد على ذوقك")
+        assert recommended["items"][0]["id"] == 96
+        assert "تحبي أحكيلك عنه أكتر" in recommended["text"]
+
+        explained = turn("احكيلي عنه اكتر")
+        assert explained["items"][0]["id"] == 96
+        assert "ترياكي تشيكن" in explained["text"]
+        assert "مشوية" in explained["text"]
+        assert "129.99" in explained["text"]
+        assert "مش قادر أحدد" not in explained["text"]
+
+        price = turn("طب هو بكام؟")
+        assert "ترياكي تشيكن" in price["text"]
+        assert "129.99" in price["text"]
+
+        # Common voice dictation and Arabic colloquial variants.
+        for variant in ("احكيلي عنها أكتر", "احكي له عنها أكتر",
+                        "قوليلي تفاصيله", "اشرحلي عنه", "tell me more"):
+            explanation = send(variant, history)
+            assert explanation["items"][0]["id"] == 96, (variant, explanation)
+            assert "ترياكي تشيكن" in explanation["text"]
+
+        # Explicit new menu item overrides prior assistant suggestions.
+        other = send("احكيلي عن كانتري تشيكن", history)
+        assert other["items"][0]["id"] == 95
+        assert "كانتري تشيكن" in other["text"]
+
+        no_history = send("احكيلي عنه أكتر", [])
+        assert no_history["items"] == []
+        assert "أنهي صنف" in no_history["text"]
+
+        allergy = send("عندي حساسية سمسم، احكيلي عنه", history)
+        assert allergy["items"] == []
+        assert "موظف المطعم" in allergy["text"]

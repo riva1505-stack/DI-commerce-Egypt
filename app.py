@@ -29,6 +29,7 @@ from urllib.parse import urlsplit
 import qrcode
 
 from assistant_engine import ai_chat, guided_chat, has_allergy, has_dietary_concern
+from gemini_main import gemini_chat
 from bokharest_demo import install_bokharest_demo
 from bokharest_showcase import install_bokharest_showcase
 from restaurant_tenants import install_tenant_platform
@@ -340,7 +341,10 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
     @app.get("/api/chat/config")
     def chat_config():
         configured = bool(voice_key())
-        return {"ai_enabled": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
+        gemini_enabled = bool(os.environ.get("GEMINI_API_KEY", "").strip())
+        openai_enabled = bool(os.environ.get("OPENAI_API_KEY", "").strip())
+        return {"ai_enabled": gemini_enabled or openai_enabled,
+                "ai_provider": "gemini" if gemini_enabled else "openai" if openai_enabled else None,
                 "voice": "server" if configured else "browser-fallback",
                 "voice_stt_enabled": configured, "voice_tts_enabled": configured,
                 "max_record_seconds": 12}
@@ -417,8 +421,9 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         if has_allergy(messages) or has_dietary_concern(messages):
             # Keep disclosed health context away from external models; no clinical recommendations.
             return guided_chat(messages, items, language=payload.language, dialect=payload.dialect)
-        key = os.environ.get("OPENAI_API_KEY", "").strip()
-        if key:
+        gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
+        openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+        if gemini_key or openai_key:
             ip = request.client.host if request.client else "unknown"
             stamp = monotonic()
             bucket = chat_requests.setdefault(ip, deque())
@@ -427,11 +432,23 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
             if len(bucket) >= 12:
                 raise HTTPException(status_code=429, detail="طلبت كتير خلال دقيقة. استنى شوية وجرّب تاني.")
             bucket.append(stamp)
-            try:
-                return await ai_chat(messages, items, key=key, model=os.environ.get("AI_MODEL", "gpt-4.1-mini"),
-                                     language=payload.language, dialect=payload.dialect)
-            except Exception:
-                logging.getLogger(__name__).warning("AI provider unavailable; using guided dialogue", exc_info=True)
+            if gemini_key:
+                try:
+                    return await gemini_chat(
+                        messages, items, key=gemini_key,
+                        model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
+                        language=payload.language, dialect=payload.dialect)
+                except Exception:
+                    logging.getLogger(__name__).warning(
+                        "Gemini unavailable; trying configured fallback", exc_info=True)
+            if openai_key:
+                try:
+                    return await ai_chat(messages, items, key=openai_key,
+                                         model=os.environ.get("AI_MODEL", "gpt-4.1-mini"),
+                                         language=payload.language, dialect=payload.dialect)
+                except Exception:
+                    logging.getLogger(__name__).warning(
+                        "AI provider unavailable; using guided dialogue", exc_info=True)
         return guided_chat(messages, items, language=payload.language, dialect=payload.dialect)
 
     @app.get("/api/suggest")

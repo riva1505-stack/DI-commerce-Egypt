@@ -14,6 +14,7 @@ import json
 import re
 import secrets
 import sqlite3
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -72,6 +73,12 @@ def initialize(path: Path):
           status TEXT NOT NULL DEFAULT 'demo', created_at TEXT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_tenant_orders ON tenant_demo_orders(tenant_id,id);
+        CREATE TABLE IF NOT EXISTS tenant_demo_request_limits (
+          tenant_id INTEGER NOT NULL REFERENCES tenant_restaurants(id),
+          bucket TEXT NOT NULL, window_start INTEGER NOT NULL, count INTEGER NOT NULL,
+          PRIMARY KEY (tenant_id, bucket)
+        );
+
         """)
 
 
@@ -144,6 +151,36 @@ def _encode_photo(data: bytes) -> bytes:
         raise
     except (OSError, ValueError, UnidentifiedImageError, Image.DecompressionBombError) as exc:
         raise HTTPException(422, "ملف الصورة غير صالح.") from exc
+
+
+def _limit_demo_requests(db, tenant_id: int, request: Request):
+    """Global, shared-SQLite limits; do not retain raw client IPs."""
+    now = int(time.time())
+    ip = request.client.host if request.client else "unknown"
+    bucket = hashlib.sha256(ip.encode("utf-8")).hexdigest()[:32]
+    for label, limit in ((bucket, 10), ("all", 45)):
+        row = db.execute(
+            "SELECT window_start,count FROM tenant_demo_request_limits "
+            "WHERE tenant_id=? AND bucket=?", (tenant_id, label)
+        ).fetchone()
+        if row and now - row["window_start"] < 60:
+            if row["count"] >= limit:
+                raise HTTPException(429, "طلبات تجريبية كثيرة. حاولي بعد دقيقة.",
+                                    headers={"Retry-After": "60"})
+            db.execute(
+                "UPDATE tenant_demo_request_limits SET count=count+1 "
+                "WHERE tenant_id=? AND bucket=?", (tenant_id, label)
+            )
+        else:
+            db.execute(
+                "INSERT INTO tenant_demo_request_limits(tenant_id,bucket,window_start,count) "
+                "VALUES(?,?,?,1) ON CONFLICT(tenant_id,bucket) "
+                "DO UPDATE SET window_start=excluded.window_start,count=1",
+                (tenant_id, label, now)
+            )
+    # Bounded bookkeeping: expired counts do not grow across days.
+    db.execute("DELETE FROM tenant_demo_request_limits WHERE window_start<?",
+               (now - 120,))
 
 
 def _stamp():
@@ -411,7 +448,7 @@ def install_tenant_platform(app, db_path: Path, is_platform_admin, platform_csrf
         return RedirectResponse(f"/r/{slug}/admin#menu", status_code=303)
 
     @app.post("/r/{slug}/api/orders")
-    def restaurant_demo_order(slug: str, payload: DemoOrder):
+    def restaurant_demo_order(slug: str, payload: DemoOrder, request: Request):
         with _connect(db_path) as db:
             tenant = _tenant(db, slug)
             ids = [x.get("id") for x in payload.items]
@@ -420,6 +457,7 @@ def install_tenant_platform(app, db_path: Path, is_platform_admin, platform_csrf
                     or not 1 <= x["quantity"] <= 20 for x in payload.items)):
                 raise HTTPException(422, "تفاصيل الطلب غير صحيحة.")
             db.execute("BEGIN IMMEDIATE")
+            _limit_demo_requests(db, tenant["id"], request)
             lines = []
             total = 0
             for line in payload.items:
@@ -436,6 +474,9 @@ def install_tenant_platform(app, db_path: Path, is_platform_admin, platform_csrf
                                  "VALUES(?,?,?,?,?,?)",
                                  (tenant["id"], payload.table_no, payload.note,
                                   total, json.dumps(lines, ensure_ascii=False), _stamp()))
+            db.execute("DELETE FROM tenant_demo_orders WHERE tenant_id=? AND id NOT IN "
+                       "(SELECT id FROM tenant_demo_orders WHERE tenant_id=? ORDER BY id DESC LIMIT 500)",
+                       (tenant["id"], tenant["id"]))
             db.commit()
             return {"demo_only": True, "id": created.lastrowid, "total_piasters": total,
                     "message": "طلب تجريبي فقط؛ لم يُرسل للمطعم."}

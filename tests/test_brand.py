@@ -8,7 +8,9 @@ def test_brand_integrated_in_all_pages(tmp_path):
     with TestClient(app) as c:
         home=c.get('/')
         assert home.status_code == 200
-        assert '/static/brand.css?v=1.3' in home.text
+        assert '/static/brand.css?v=1.4' in home.text
+        assert 'class="hero-circle"' in home.text
+        assert home.text.index('class="hero-circle"') < home.text.index('class="hero-robot"')
         assert 'DI Commerce' in home.text and '/static/images/ai-commerce-logo.webp' in home.text
         assert 'chatMic' in home.text and 'submitOrder' in home.text
         assert '/static/i18n.js' in home.text and 'id="diLanguage"' in home.text
@@ -29,6 +31,8 @@ def test_brand_assets_and_menu_api(tmp_path):
         assert css.status_code==200
         assert '--magenta:#f649dc' in css.text
         assert '.sidebar' in css.text and '.chat-thread' in css.text
+        assert '.hero-circle{' in css.text and 'aspect-ratio:1;border-radius:50%;overflow:hidden' in css.text
+        assert 'object-fit:cover;object-position:center' in css.text
         image=c.get('/static/images/ai-commerce-logo.webp')
         assert image.status_code==200 and len(image.content)>30_000
         assert image.headers['content-type']=='image/webp'

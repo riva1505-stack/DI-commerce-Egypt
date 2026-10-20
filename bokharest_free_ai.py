@@ -59,7 +59,11 @@ def _candidate_items(message: str, history: list[str], items: list[dict],
         recent = sum(12 for t in tokens if t in name)
         relevant = sum(5 for t in tokens if t in cat) + sum(1 for t in tokens if t in desc)
         direct = 24 if name and name in current else 0
-        return direct + recent + relevant
+        # Egyptian "فراخ" and Lebanese "دجاج" mean the same category.
+        # Preserve multiple relevant dishes for comparisons and suggestions.
+        chicken = any(w in current for w in ("فراخ", "دجاج", "تشيكن", "chicken", "poulet"))
+        category_boost = 40 if chicken and normalize(item.get("_category_ar", "")) == normalize("دجاج") else 0
+        return direct + recent + relevant + category_boost
     ranked = sorted(items, key=lambda item: (-score(item), item["id"]))
     chosen = ranked[:limit]
     # Ensure some representative choices from each section for broad requests.

@@ -30,6 +30,7 @@ import qrcode
 
 from assistant_engine import ai_chat, guided_chat, has_allergy
 from bokharest_demo import install_bokharest_demo
+from bokharest_showcase import install_bokharest_showcase
 from auth_security import AdminAuth, PREVIEW_SECRET, SESSION_SECONDS, hash_password, parse_password_hash
 from voice_gateway import transcribe_audio, synthesize_speech
 from fastapi import FastAPI, HTTPException, Request
@@ -667,6 +668,7 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         return {"ok": True, "version": "1.0.0-restaurant-edition"}
 
     install_bokharest_demo(app, db_path, is_admin, verify_csrf, csrf_for, TEMPLATES)
+    install_bokharest_showcase(app, db_path, is_admin, verify_csrf, csrf_for, TEMPLATES)
     return app
 
 

@@ -190,3 +190,37 @@ def test_bokharest_chat_remembers_chicken_and_recommends_with_reason(tmp_path):
         allergy = chat("عندي حساسية سمسم", expanded_history)
         assert not allergy["items"]
         assert "موظف المطعم" in allergy["text"]
+
+
+
+def test_reservations_chat_isolated_from_table_script(tmp_path):
+    """The chat must still initialize if table booking fails on the client."""
+    with new_client(tmp_path) as client:
+        page = client.get("/bokharest/reserve")
+        assert page.status_code == 200
+        assert 'id="chatForm"' in page.text
+        assert 'id="sendChat"' in page.text
+        assert 'id="chatInput"' in page.text
+        assert 'id="micChat"' in page.text
+        assert '/static/bokharest_reservations_chat.js?v=1' in page.text
+        assert "function bubble(" not in page.text
+        script = client.get("/static/bokharest_reservations_chat.js")
+        assert script.status_code == 200
+        assert 'form.addEventListener("submit"' in script.text
+        assert 'suggestions.addEventListener("click"' in script.text
+        assert "/api/bokharest/demo-chat" in script.text
+        assert "history.push(question, answer)" in script.text
+        assert "AbortController" in script.text
+        assert "DOMContentLoaded" in script.text
+        assert "rec.onend" in script.text
+
+        chicken = client.post("/api/bokharest/demo-chat",
+                              json={"message": "عندكم دجاج؟", "history": []})
+        assert chicken.status_code == 200
+        assert chicken.json()["items"]
+
+        followup = client.post("/api/bokharest/demo-chat",
+                               json={"message": "إيه أفضلهم؟",
+                                     "history": ["عندكم دجاج؟", chicken.json()["text"]]})
+        assert followup.status_code == 200
+        assert "ترياكي تشيكن" in followup.json()["text"]

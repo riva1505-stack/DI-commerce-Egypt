@@ -1,10 +1,13 @@
-"""Independent, no-fee Bokharest sales showcase: grounded menu chat and table reservations.
+"""Bokharest catalogue chat (optional Gemini trial) and demo reservations.
 
-All data is DEMO ONLY. Never contacts the restaurant, AI vendors, or WhatsApp.
-No actual table inventory is claimed or displayed.
+All data is DEMO ONLY; never confirms actual restaurant orders or bookings.
+When a Gemini API key is configured, user message, previous turns, and menu
+snippets are sent to Google; without a key no external AI is contacted.
 """
 from __future__ import annotations
 
+import os
+import logging
 import re
 import secrets
 import sqlite3
@@ -18,6 +21,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from assistant_engine import normalize
+from bokharest_free_ai import gemini_menu_reply
 from bokharest_ordering import _catalog, _connect
 
 CAIRO = ZoneInfo("Africa/Cairo")
@@ -382,6 +386,21 @@ def install_bokharest_showcase(app, db_path, is_admin, verify_csrf, csrf_for, te
           WHERE status='demo';
         """)
     attempts = defaultdict(deque)
+    gemini_calls = deque()
+    ai_logger = logging.getLogger(__name__)
+
+    def gemini_trial_available() -> bool:
+        return bool(os.environ.get("GEMINI_API_KEY", "").strip())
+
+    def allow_demo_ai() -> bool:
+        """Conservative best-effort cap; provider-side free tier governs usage."""
+        now = monotonic()
+        while gemini_calls and gemini_calls[0] < now - 3600:
+            gemini_calls.popleft()
+        if len(gemini_calls) >= 40:
+            return False
+        gemini_calls.append(now)
+        return True
 
     def throttle(req: Request, limit: int):
         ip = req.client.host if req.client else "unknown"
@@ -439,10 +458,41 @@ def install_bokharest_showcase(app, db_path, is_admin, verify_csrf, csrf_for, te
                 "date": day, "time": slot, "guests": payload.guests,
                 "message": "اتسجل حجز تجريبي للعرض فقط، مش حجز حقيقي في المطعم."}
 
+    @app.get("/api/bokharest/chat-config")
+    def demo_chat_config():
+        """Public status; never exposes provider credentials."""
+        enabled = gemini_trial_available()
+        return {"ai_enabled": enabled,
+                "mode": "gemini-ai-demo" if enabled else "catalogue-demo",
+                "provider": "gemini" if enabled else None,
+                "voice_ai_enabled": False}
+
     @app.post("/api/bokharest/demo-chat")
-    def demo_chat(payload: ChatRequest, request: Request):
+    async def demo_chat(payload: ChatRequest, request: Request):
         throttle(request, 60)
-        return menu_reply(payload.message.strip(), payload.history[-6:])
+        message = payload.message.strip()
+        history = payload.history[-6:]
+        # Food safety and reservation claims always use the local response.
+        unsafe = _query_mentions(message, (
+            "حساسي", "مكسرات", "جلوتين", "غلوتين", "لاكتوز",
+            "حامل", "حمل", "سكري", "دايت علاجي", "مريض",
+            "allerg", "gluten", "peanut", "celiac", "diabetic",
+            "احجز", "حجز", "ترابيز", "طاوله", "طاولة", "booking", "reserv",
+        ))
+        if not unsafe and gemini_trial_available() and allow_demo_ai():
+            try:
+                return await gemini_menu_reply(
+                    message, history, _menu_items_with_categories(),
+                    api_key=os.environ["GEMINI_API_KEY"].strip(),
+                    model=os.environ.get("BOKHAREST_GEMINI_MODEL", "gemini-2.5-flash"),
+                )
+            except Exception:
+                ai_logger.warning("Bokharest free-tier AI call failed; using local menu fallback",
+                                  exc_info=True)
+        answer = menu_reply(message, history)
+        if gemini_trial_available():
+            answer["ai_fallback"] = True
+        return answer
 
     @app.get("/admin/bokharest-reservations", response_class=HTMLResponse)
     def reservation_admin(request: Request):

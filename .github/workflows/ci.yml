@@ -24,4 +24,4 @@ jobs:
       - run: node --check static/bokharest_cart.js
       - run: node --check static/bokharest_chat.js
       - run: node --check static/bokharest_reservations_chat.js
-      - run: python -m py_compile bokharest_demo.py bokharest_ordering.py app.py
+      - run: python -m py_compile bokharest_demo.py bokharest_ordering.py bokharest_showcase.py bokharest_free_ai.py app.py

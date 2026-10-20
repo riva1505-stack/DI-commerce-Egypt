@@ -605,7 +605,7 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         verify_csrf(request, str(form.get("csrf", "")))
         name = str(form.get("name", "")).strip()[:90]
         desc = str(form.get("description", "")).strip()[:250]
-        category = str(form.get("category", ""))
+        category = (str(form.get("category_custom", "")).strip() or str(form.get("category", "")).strip())
         if not name or not valid_category(category):
             raise HTTPException(status_code=422, detail="اسم الصنف أو القسم غير صحيح")
         try:
@@ -625,7 +625,7 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
         form = await request.form()
         verify_csrf(request, str(form.get("csrf", "")))
         name = str(form.get("name", "")).strip()[:90]
-        category = str(form.get("category", ""))
+        category = (str(form.get("category_custom", "")).strip() or str(form.get("category", "")).strip())
         desc = str(form.get("description", "")).strip()[:250]
         if not name or not valid_category(category):
             raise HTTPException(status_code=422, detail="بيانات الصنف غير صحيحة")

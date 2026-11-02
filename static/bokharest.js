@@ -14,7 +14,7 @@
       demo:"Test orders only",greeting:"Welcome to",intro:"Browse the menu and test ordering by table number. No real restaurant orders are placed.",
       menu:"Menu",search:"Search items...",all:"All categories",items:"items",noItems:"No items match this search.",
       important:"Before ordering",legal:"This is a read-only menu preview, not an ordering service. Prices were transcribed from supplied photos and may be outdated; confirm with the restaurant. Ask staff about ingredients and allergies.",
-      back:"Back to DI Commerce →",testCart:"Test cart",testOnly:"⚠️ Demo only: no order will reach the restaurant; prices are estimates.",tableNo:"Table number",orderNote:"Note (optional)",sendDemo:"Place test order",notice:"Prices are from supplied photos and require restaurant confirmation. The images state 12% service and 14% VAT. Test orders never reach the restaurant.",
+      back:"Back to DI →",testCart:"Test cart",testOnly:"⚠️ Demo only: no order will reach the restaurant; prices are estimates.",tableNo:"Table number",orderNote:"Note (optional)",sendDemo:"Place test order",notice:"Prices are from supplied photos and require restaurant confirmation. The images state 12% service and 14% VAT. Test orders never reach the restaurant.",
       error:"Unable to load the menu.",currency:"EGP",preview:"Preview",subHot:"Hot",subCold:"Cold",subAvocado:"Avocado",subYogurt:"Yogurt"
     }
   };
@@ -32,7 +32,7 @@
     $("taxNotice").textContent=t("notice");
     $("search").placeholder=t("search");
     $("search").setAttribute("aria-label",t("search"));
-    document.title = lang === "ar" ? "كافيه بوخاريست | DI Commerce Egypt" : "Café Bokharest | DI Commerce Egypt";
+    document.title = lang === "ar" ? "كافيه بوخاريست | DI Smart Restaurant Assistant" : "Café Bokharest | DI Smart Restaurant Assistant";
     render();
   }
   function render() {

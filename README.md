@@ -1,4 +1,4 @@
-# DI Commerce Egypt — Restaurant Edition v1.0
+# DI Smart Restaurant Assistant — Restaurant Edition v1.0
 
 **برنامج ويب تجريبي لمطعم واحد — واجهة عربية RTL كاملة بهوية جديدة (أسود × ذهبي × فوشيا)، وصوت وكتابة، ومنيو وسلة ولوحة إدارة.**
 

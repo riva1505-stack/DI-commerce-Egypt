@@ -1,4 +1,4 @@
-/* DI Commerce Egypt customer-facing language selection.
+/* DI Smart Restaurant Assistant customer-facing language selection.
    No API key or restaurant data is stored in the browser. */
 (() => {
   "use strict";
@@ -89,7 +89,7 @@
     document.documentElement.dir = locale.language === "ar" ? "rtl" : "ltr";
     document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
     document.querySelectorAll("[data-i18n-placeholder]").forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
-    document.title = "DI Commerce Egypt · " + (document.querySelector(".eyebrow")?.textContent || "");
+    document.title = "DI Smart Restaurant Assistant · " + (document.querySelector(".eyebrow")?.textContent || "");
   }
   function setChoice(next) {
     if (!allowed.includes(next) || next === choice) return;

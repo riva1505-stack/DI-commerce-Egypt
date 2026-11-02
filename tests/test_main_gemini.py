@@ -84,9 +84,8 @@ def test_gemini_http_request_and_validated_menu_items(client, monkeypatch):
             return None
 
         def json(self):
-            return {"candidates": [{"content": {"parts": [{"text": json.dumps({
-                "text": "أرشّحلك الاختيارات دي من منيو المطعم.",
-                "item_ids": [1], "quick_replies": ["عايز مشروب"]
+            return {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": json.dumps({
+                "intent": "recommend", "item_ids": [1]
             }, ensure_ascii=False)}]}}]}
 
     class FakeClient:
@@ -109,7 +108,7 @@ def test_gemini_http_request_and_validated_menu_items(client, monkeypatch):
     assert result["mode"] == "ai"
     assert result["choices"][0]["price_piasters"] == 18500
     assert events[0][1]["x-goog-api-key"] == "test-key"
-    assert "gemini-2.5-flash:generateContent" in events[0][0]
+    assert "gemini-3.5-flash-lite:generateContent" in events[0][0]
     assert "test-key" not in json.dumps(events[0][2])
 
 
@@ -121,7 +120,7 @@ def test_gemini_rejects_invented_ids_and_generated_prices(client, monkeypatch):
             return None
 
         def json(self):
-            return {"candidates": [{"content": {"parts": [
+            return {"candidates": [{"finishReason": "STOP", "content": {"parts": [
                 {"text": json.dumps(monkeypatch.answer)}
             ]}}]}
 
@@ -140,8 +139,8 @@ def test_gemini_rejects_invented_ids_and_generated_prices(client, monkeypatch):
 
     monkeypatch.setattr("gemini_main.httpx.AsyncClient", FakeClient)
     for answer in (
-        {"text": "أرشح الاختيارات دي.", "item_ids": [9999], "quick_replies": []},
-        {"text": "ده سعره 999 جنيه", "item_ids": [1], "quick_replies": []},
+        {"intent": "recommend", "item_ids": [9999]},
+        {"intent": "recommend", "item_ids": [1], "text": "ده سعره 999 جنيه"},
     ):
         monkeypatch.answer = answer
         with pytest.raises(ValueError):

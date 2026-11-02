@@ -6,6 +6,7 @@ Not a payment processor, POS integration, or hosted AI model.
 from __future__ import annotations
 
 import hashlib
+import asyncio
 import hmac
 import io
 import json
@@ -28,8 +29,8 @@ from urllib.parse import urlsplit
 
 import qrcode
 
-from assistant_engine import ai_chat, guided_chat, has_allergy, has_dietary_concern
-from gemini_main import gemini_chat
+from assistant_engine import ai_chat, guided_chat, has_allergy, has_dietary_concern, options_from_ids
+from gemini_main import DEFAULT_GEMINI_MODEL, gemini_chat
 from bokharest_demo import install_bokharest_demo
 from bokharest_showcase import install_bokharest_showcase
 from restaurant_tenants import install_tenant_platform
@@ -49,6 +50,7 @@ TEMPLATES = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 COOKIE_NAME = "ai_commerce_admin"
 ORDER_STATES = ("new", "accepted", "preparing", "ready", "completed", "cancelled")
 CATEGORIES = ("بيتزا", "برجر", "مقبلات", "مشروبات", "حلويات", "أخرى")
+CHAT_PROVIDER_TIMEOUT_SECONDS = 15.0
 
 
 def valid_category(value: str) -> bool:
@@ -410,13 +412,25 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
             raise HTTPException(status_code=503, detail="تعذر تشغيل الرد الصوتي.")
         return Response(content=audio_bytes, media_type="audio/mpeg", headers={"Cache-Control": "no-store"})
 
+    def current_chat_menu():
+        with dbconn(db_path) as db:
+            return menu_from(db)
+
+    def refresh_ai_choices(answer):
+        # Menu edits may finish while the remote provider is responding.
+        current_items = current_chat_menu()
+        ids = [item['id'] for item in answer['choices']]
+        choices = options_from_ids(current_items, ids)
+        if len(choices) != len(ids):
+            raise ValueError('A recommended item is no longer available')
+        return answer | {'choices': choices}
+
     @app.post("/api/chat")
     async def chat(payload: ChatRequest, request: Request):
         messages = [m.model_dump() for m in payload.messages]
         if messages[-1]["role"] != "user":
             raise HTTPException(status_code=422, detail="لازم آخر رسالة تكون من الزبون")
-        with dbconn(db_path) as db:
-            items = menu_from(db)
+        items = current_chat_menu()
         # Local food-safety redirection comes before any external provider call.
         if has_allergy(messages) or has_dietary_concern(messages):
             # Keep disclosed health context away from external models; no clinical recommendations.
@@ -434,22 +448,26 @@ def create_app(db_path: Path | None = None, *, admin_password: str | None = None
             bucket.append(stamp)
             if gemini_key:
                 try:
-                    return await gemini_chat(
+                    answer = await asyncio.wait_for(gemini_chat(
                         messages, items, key=gemini_key,
-                        model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
-                        language=payload.language, dialect=payload.dialect)
-                except Exception:
+                        model=os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
+                        language=payload.language, dialect=payload.dialect),
+                        timeout=CHAT_PROVIDER_TIMEOUT_SECONDS)
+                    return refresh_ai_choices(answer)
+                except Exception as exc:
                     logging.getLogger(__name__).warning(
-                        "Gemini unavailable; trying configured fallback", exc_info=True)
+                        "Gemini unavailable (%s); trying configured fallback", type(exc).__name__)
             if openai_key:
                 try:
-                    return await ai_chat(messages, items, key=openai_key,
+                    answer = await asyncio.wait_for(ai_chat(messages, current_chat_menu(), key=openai_key,
                                          model=os.environ.get("AI_MODEL", "gpt-4.1-mini"),
-                                         language=payload.language, dialect=payload.dialect)
-                except Exception:
+                                         language=payload.language, dialect=payload.dialect),
+                                         timeout=CHAT_PROVIDER_TIMEOUT_SECONDS)
+                    return refresh_ai_choices(answer)
+                except Exception as exc:
                     logging.getLogger(__name__).warning(
-                        "AI provider unavailable; using guided dialogue", exc_info=True)
-        return guided_chat(messages, items, language=payload.language, dialect=payload.dialect)
+                        "OpenAI unavailable (%s); using guided dialogue", type(exc).__name__)
+        return guided_chat(messages, current_chat_menu(), language=payload.language, dialect=payload.dialect)
 
     @app.get("/api/suggest")
     def suggest(q: str = ""):
